@@ -1,0 +1,4781 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ViteReport — Solution de Rapports d'Inspection (vitereport.com)</title>
+  <meta name="description" content="Application mobile de création rapide de rapports d'inspection terrain avec export PDF autonome sans backend.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="logo.png">
+  <meta name="theme-color" content="#0d233a">
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- jsPDF 2.5.1 UMD -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <!-- PptxGenJS 3.12 UMD - for PowerPoint export -->
+  <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+
+  <style>
+    :root {
+      --primary-navy: #0d233a;
+      --primary-dark: #091827;
+      --primary-blue: #1e5ba8;
+      --accent-blue: #2563eb;
+      --accent-cyan: #0284c7;
+      --accent-hover: #1d4ed8;
+      --bg-page: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-muted: #f1f5f9;
+      --bg-input: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --text-subtle: #94a3b8;
+      --border-color: #e2e8f0;
+      --border-focus: #3b82f6;
+      --danger-color: #ef4444;
+      --danger-bg: #fef2f2;
+      --danger-border: #fecaca;
+      --success-color: #10b981;
+      --success-bg: #ecfdf5;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.1), 0 4px 6px -4px rgba(15, 23, 42, 0.08);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-full: 9999px;
+      --header-height: 64px;
+      --container-max-width: 1400px;
+    }
+
+    /* DARK MODE */
+    body.dark-mode {
+      --bg-page: #0f172a;
+      --bg-surface: #1e293b;
+      --bg-muted: #1e293b;
+      --bg-input: #1e293b;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-subtle: #64748b;
+      --border-color: #334155;
+      --border-focus: #3b82f6;
+      --danger-bg: #450a0a;
+      --danger-border: #7f1d1d;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+    }
+
+    #editorScreen {
+      padding-bottom: 100px; /* Space for sticky bottom bar in editor */
+    }
+
+    h1, h2, h3, h4, .font-heading {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    /* HEADER */
+    .app-header {
+      background: linear-gradient(135deg, var(--primary-navy) 0%, #16365c 100%);
+      color: #ffffff;
+      padding: 0.65rem 1rem;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      box-shadow: 0 4px 12px rgba(13, 35, 58, 0.2);
+      transition: padding 0.2s ease;
+      overflow: hidden;
+      direction: ltr !important;
+    }
+    @media (min-width: 768px) {
+      .app-header {
+        padding: 0.9rem 2rem;
+      }
+    }
+    @media (min-width: 1200px) {
+      .app-header {
+        padding: 1rem 3rem;
+      }
+    }
+
+    .header-content {
+      max-width: var(--container-max-width);
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      min-width: 0;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    /* Back button (editor → list) */
+    .btn-back {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #fff;
+      border-radius: 8px;
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.15s;
+      flex-shrink: 0;
+    }
+    .btn-back:hover { background: rgba(255,255,255,0.2); }
+    .btn-back svg { width: 18px; height: 18px; stroke: #fff; }
+
+    /* Lang switcher */
+    .lang-switcher {
+      display: flex;
+      gap: 3px;
+      background: rgba(0, 0, 0, 0.22);
+      padding: 3px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+    }
+    .btn-lang {
+      background: transparent;
+      border: 1px solid transparent;
+      color: rgba(255,255,255,0.7);
+      border-radius: 6px;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.68rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+      letter-spacing: 0.04em;
+    }
+    .btn-lang.active {
+      background: #ffffff;
+      color: var(--primary-navy);
+      border-color: #ffffff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    }
+    .btn-lang:hover:not(.active) {
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+    }
+
+    /* Dark mode toggle */
+    .btn-darkmode {
+      background: rgba(0,0,0,0.22);
+      border: 1px solid rgba(255,255,255,0.14);
+      color: #ffffff;
+      border-radius: 8px;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-darkmode:hover {
+      background: rgba(255,255,255,0.22);
+      color: #fff;
+      transform: scale(1.05);
+    }
+    .btn-darkmode svg { width: 16px; height: 16px; }
+
+    .main-header-logo {
+      height: 36px;
+      width: auto;
+      flex-shrink: 0;
+      transition: transform 0.2s ease;
+      cursor: pointer;
+    }
+    @media (min-width: 768px) {
+      .main-header-logo { height: 42px; }
+    }
+
+    .app-branding {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      min-width: 0;
+    }
+
+    .app-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+      border: 2px solid rgba(255, 255, 255, 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .app-logo svg {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: #ffffff;
+      stroke-width: 2.4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .app-title-group { min-width: 0; }
+    .app-title-group h1 {
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .app-subtitle {
+      font-size: 0.68rem;
+      color: #94a3b8;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .badge-offline {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 0.2rem 0.5rem;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      white-space: nowrap;
+    }
+
+    .badge-offline::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: #34d399;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.2); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+
+    /* ============================
+       REPORTS LIST SCREEN
+       ============================ */
+    #reportsScreen {
+      max-width: var(--container-max-width);
+      margin: 0 auto;
+      width: 100%;
+      padding: 1.25rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+    @media (min-width: 768px) {
+      #reportsScreen {
+        padding: 2rem 2rem;
+        gap: 1.5rem;
+      }
+    }
+    @media (min-width: 1200px) {
+      #reportsScreen {
+        padding: 2.5rem 3rem;
+        gap: 1.75rem;
+      }
+    }
+
+    .reports-screen-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .reports-screen-title-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .reports-screen-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      letter-spacing: -0.02em;
+    }
+    @media (min-width: 768px) {
+      .reports-screen-title {
+        font-size: 1.55rem;
+      }
+    }
+
+    .reports-screen-desc {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      display: none;
+    }
+    @media (min-width: 768px) {
+      .reports-screen-desc {
+        display: block;
+      }
+    }
+
+    .reports-count-pill {
+      font-size: 0.75rem;
+      font-weight: 700;
+      background: #e0f2fe;
+      color: #0369a1;
+      padding: 0.2rem 0.65rem;
+      border-radius: var(--radius-full);
+    }
+    body.dark-mode .reports-count-pill {
+      background: rgba(3,105,161,0.25);
+      color: #7dd3fc;
+    }
+
+    .btn-new-report {
+      background: linear-gradient(135deg, #1e40af, #0284c7);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 0.75rem 1.4rem;
+      font-size: 0.92rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      box-shadow: 0 4px 14px rgba(37,99,235,0.35);
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .btn-new-report:hover {
+      filter: brightness(1.08);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(37,99,235,0.45);
+    }
+    .btn-new-report svg { width: 18px; height: 18px; }
+
+    /* Reports Toolbar: Search + Filters */
+    .reports-toolbar {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    @media (min-width: 768px) {
+      .reports-toolbar {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1.25rem;
+        background: var(--bg-surface);
+        padding: 0.85rem 1.25rem;
+        border-radius: var(--radius-lg);
+        border: 1.5px solid var(--border-color);
+        box-shadow: var(--shadow-sm);
+      }
+    }
+
+    /* Search bar */
+    .reports-search-bar {
+      position: relative;
+      width: 100%;
+    }
+    @media (min-width: 768px) {
+      .reports-search-bar {
+        max-width: 440px;
+      }
+    }
+    .reports-search-bar svg {
+      position: absolute;
+      left: 0.85rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px; height: 18px;
+      color: var(--text-subtle);
+      pointer-events: none;
+    }
+    .reports-search-input {
+      width: 100%;
+      background: var(--bg-surface);
+      border: 1.5px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 0.7rem 1rem 0.7rem 2.6rem;
+      font-size: 0.88rem;
+      color: var(--text-main);
+      font-family: 'Inter', sans-serif;
+      transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
+    }
+    @media (min-width: 768px) {
+      .reports-search-input {
+        background: var(--bg-muted);
+        border-color: transparent;
+      }
+      .reports-search-input:focus {
+        background: var(--bg-surface);
+        border-color: var(--border-focus);
+      }
+    }
+    .reports-search-input:focus {
+      outline: none;
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+    }
+    .reports-search-input::placeholder { color: var(--text-subtle); }
+
+    /* Filter tabs */
+    .reports-filter-row {
+      display: flex;
+      gap: 0.45rem;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      scrollbar-width: none;
+      flex-shrink: 0;
+    }
+    .reports-filter-row::-webkit-scrollbar { display: none; }
+    .btn-filter {
+      background: var(--bg-surface);
+      border: 1.5px solid var(--border-color);
+      color: var(--text-muted);
+      border-radius: var(--radius-full);
+      padding: 0.4rem 0.95rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .btn-filter.active {
+      background: var(--primary-navy);
+      border-color: var(--primary-navy);
+      color: #fff;
+      box-shadow: 0 2px 6px rgba(13, 35, 58, 0.25);
+    }
+    body.dark-mode .btn-filter.active {
+      background: #2563eb;
+      border-color: #2563eb;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+    }
+    .btn-filter:hover:not(.active) { border-color: #94a3b8; color: var(--text-main); }
+
+    /* Reports List Container (Responsive Multi-column Grid on PC) */
+    #reportsListContainer {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    @media (min-width: 768px) {
+      #reportsListContainer {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+        gap: 1.25rem;
+      }
+    }
+    @media (min-width: 1300px) {
+      #reportsListContainer {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+      }
+    }
+
+    /* Report card in list */
+    .report-list-card {
+      background: var(--bg-surface);
+      border: 1.5px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem 1.35rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 0.9rem;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s, border-color 0.2s;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      animation: fadeIn 0.22s ease-out;
+      min-height: 180px;
+    }
+    .report-list-card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 4px;
+      background: linear-gradient(180deg, #1e5ba8, #0284c7);
+    }
+    .report-list-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+      border-color: #93c5fd;
+    }
+    body.dark-mode .report-list-card:hover {
+      border-color: #3b82f6;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+    }
+
+    .report-card-top {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+
+    .report-card-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #eff6ff, #dbeafe);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    body.dark-mode .report-card-icon {
+      background: rgba(30,91,168,0.25);
+    }
+    .report-card-icon svg { width: 22px; height: 22px; color: #1e5ba8; }
+
+    .report-card-title-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+    .report-card-title {
+      font-size: 0.98rem;
+      font-weight: 700;
+      color: var(--text-main);
+      line-height: 1.35;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      word-break: break-word;
+    }
+    .report-card-badge-wrap {
+      margin-top: 0.35rem;
+    }
+
+    .report-card-body-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .report-card-meta {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      flex-wrap: wrap;
+    }
+    .report-card-meta-dot {
+      width: 3px; height: 3px;
+      border-radius: 50%;
+      background: var(--text-subtle);
+      flex-shrink: 0;
+    }
+    .report-card-location {
+      font-size: 0.74rem;
+      color: #0284c7;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    body.dark-mode .report-card-location { color: #38bdf8; }
+    .report-card-location svg { width: 12px; height: 12px; flex-shrink: 0; }
+    .report-card-loc-desc {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-style: italic;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Status badge */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 0.2rem 0.55rem;
+      border-radius: var(--radius-full);
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      border: none;
+      transition: filter 0.15s;
+    }
+    .status-badge:hover { filter: brightness(0.92); }
+    .status-badge.draft  { background: #fef9c3; color: #854d0e; }
+    .status-badge.done   { background: #dcfce7; color: #166534; }
+    .status-badge.exported { background: #dbeafe; color: #1e40af; }
+    body.dark-mode .status-badge.draft    { background: rgba(133,77,14,0.2);  color: #fde047; }
+    body.dark-mode .status-badge.done     { background: rgba(22,101,52,0.2);  color: #4ade80; }
+    body.dark-mode .status-badge.exported { background: rgba(30,64,175,0.2);  color: #60a5fa; }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .status-badge.draft   .status-dot { background: #ca8a04; }
+    .status-badge.done    .status-dot { background: #16a34a; }
+    .status-badge.exported .status-dot { background: #2563eb; }
+
+    /* Card Footer: timestamp on left, actions on right */
+    .report-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border-color);
+      margin-top: auto;
+    }
+    .report-card-time {
+      font-size: 0.7rem;
+      color: var(--text-subtle);
+    }
+    .report-card-actions {
+      display: flex;
+      gap: 0.35rem;
+      flex-shrink: 0;
+    }
+
+    /* Custom confirm dialog */
+    .confirm-modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(4px);
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .confirm-modal-backdrop.active { opacity: 1; pointer-events: auto; }
+    .confirm-modal {
+      background: var(--bg-surface);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      max-width: 320px;
+      width: 100%;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+      transform: scale(0.95);
+      transition: transform 0.2s;
+    }
+    .confirm-modal-backdrop.active .confirm-modal { transform: scale(1); }
+    .confirm-modal-icon {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: var(--danger-bg);
+      border: 2px solid var(--danger-border);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1rem;
+    }
+    .confirm-modal-icon svg { width: 22px; height: 22px; color: var(--danger-color); }
+    .confirm-modal-title {
+      font-size: 1rem; font-weight: 800;
+      text-align: center; color: var(--text-main);
+      margin-bottom: 0.4rem;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .confirm-modal-desc {
+      font-size: 0.82rem; color: var(--text-muted);
+      text-align: center; line-height: 1.5;
+      margin-bottom: 1.25rem;
+    }
+    .confirm-modal-actions {
+      display: flex; gap: 0.6rem;
+    }
+    .btn-confirm-cancel {
+      flex: 1;
+      background: var(--bg-muted);
+      border: 1.5px solid var(--border-color);
+      color: var(--text-main);
+      border-radius: var(--radius-md);
+      padding: 0.7rem;
+      font-size: 0.85rem; font-weight: 700;
+      cursor: pointer; transition: all 0.15s;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .btn-confirm-cancel:hover { border-color: #94a3b8; }
+    .btn-confirm-delete {
+      flex: 1;
+      background: linear-gradient(135deg, #dc2626, #ef4444);
+      border: none;
+      color: #fff;
+      border-radius: var(--radius-md);
+      padding: 0.7rem;
+      font-size: 0.85rem; font-weight: 700;
+      cursor: pointer; transition: all 0.15s;
+      box-shadow: 0 2px 8px rgba(220,38,38,0.3);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .btn-confirm-delete:hover { filter: brightness(1.08); }
+
+    /* Empty list */
+    .reports-empty {
+      text-align: center;
+      padding: 3rem 1.5rem;
+      background: var(--bg-surface);
+      border-radius: var(--radius-lg);
+      border: 2px dashed var(--border-color);
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .reports-empty-icon {
+      width: 60px; height: 60px;
+      background: var(--bg-muted);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .reports-empty-icon svg { width: 28px; height: 28px; color: var(--text-subtle); }
+
+    /* ============================================================
+       EXPORT FORMAT MODAL
+       ============================================================ */
+    .export-modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(6px);
+      z-index: 600;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.22s;
+    }
+    .export-modal-backdrop.active { opacity: 1; pointer-events: auto; }
+    .export-modal {
+      background: var(--bg-surface);
+      border-radius: 20px 20px 0 0;
+      padding: 1.25rem 1rem 2rem;
+      width: 100%;
+      max-width: 500px;
+      box-shadow: 0 -8px 40px rgba(0,0,0,0.22);
+      transform: translateY(100%);
+      transition: transform 0.28s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .export-modal-backdrop.active .export-modal { transform: translateY(0); }
+    @media (min-width: 768px) {
+      .export-modal-backdrop {
+        align-items: center;
+      }
+      .export-modal {
+        border-radius: var(--radius-xl) !important;
+        max-width: 560px !important;
+        padding: 2rem !important;
+        transform: scale(0.95) !important;
+      }
+      .export-modal-backdrop.active .export-modal {
+        transform: scale(1) !important;
+      }
+      .export-modal-handle {
+        display: none !important;
+      }
+    }
+    .export-modal-handle {
+      width: 40px; height: 4px;
+      background: var(--border-color);
+      border-radius: 4px;
+      margin: 0 auto 1.1rem;
+    }
+    .export-modal-title {
+      font-size: 1rem; font-weight: 800;
+      color: var(--text-main);
+      text-align: center;
+      margin-bottom: 0.25rem;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .export-modal-subtitle {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      text-align: center;
+      margin-bottom: 1.1rem;
+    }
+    .export-format-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+    .export-format-btn {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.9rem 1.1rem;
+      background: var(--bg-muted);
+      border: 1.5px solid var(--border-color);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.18s;
+      text-align: left;
+      width: 100%;
+    }
+    .export-format-btn:hover {
+      border-color: var(--border-focus);
+      box-shadow: 0 3px 12px rgba(59,130,246,0.15);
+      transform: translateY(-1px);
+    }
+    .export-format-btn:active { transform: translateY(0); }
+    .export-format-icon {
+      width: 46px; height: 46px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem;
+      flex-shrink: 0;
+    }
+    .export-format-icon.pdf   { background: #fef2f2; }
+    .export-format-icon.pptx  { background: #fff7ed; }
+    .export-format-icon.word  { background: #eff6ff; }
+    body.dark-mode .export-format-icon.pdf  { background: rgba(239,68,68,0.12); }
+    body.dark-mode .export-format-icon.pptx { background: rgba(234,88,12,0.12); }
+    body.dark-mode .export-format-icon.word { background: rgba(37,99,235,0.12); }
+    .export-format-name {
+      font-size: 0.9rem; font-weight: 700;
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .export-format-desc {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.1rem;
+    }
+    .export-format-tag {
+      margin-left: auto;
+      font-size: 0.62rem;
+      font-weight: 700;
+      padding: 0.15rem 0.5rem;
+      border-radius: var(--radius-full);
+      background: #dcfce7;
+      color: #166534;
+      flex-shrink: 0;
+    }
+    body.dark-mode .export-format-tag { background: rgba(22,101,52,0.2); color: #4ade80; }
+
+    /* MAIN CONTAINER (editor screen) */
+    .app-container {
+      max-width: var(--container-max-width);
+      margin: 0 auto;
+      width: 100%;
+      padding: 1.25rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+    @media (min-width: 768px) {
+      .app-container {
+        padding: 2rem 2rem;
+      }
+    }
+    @media (min-width: 1200px) {
+      .app-container {
+        padding: 2.5rem 3rem;
+      }
+    }
+
+    /* Editor Desktop 2-column layout */
+    .editor-desktop-layout {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+    @media (min-width: 1024px) {
+      .editor-desktop-layout {
+        display: grid;
+        grid-template-columns: 380px 1fr;
+        gap: 2rem;
+        align-items: start;
+      }
+      .editor-sidebar-col {
+        position: sticky;
+        top: calc(var(--header-height) + 1.25rem);
+        max-height: calc(100vh - var(--header-height) - 140px);
+        overflow-y: auto;
+        scrollbar-width: thin;
+        padding-right: 4px;
+      }
+      .editor-main-col {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+        min-width: 0;
+      }
+    }
+    @media (min-width: 1280px) {
+      .editor-desktop-layout {
+        grid-template-columns: 420px 1fr;
+        gap: 2.5rem;
+      }
+    }
+
+    /* Step card interior grid on PC */
+    .step-card-grid-pc {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    @media (min-width: 768px) {
+      .step-card-grid-pc {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.25rem;
+        align-items: stretch;
+      }
+      .step-card-grid-pc .step-remarks-group {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+      .step-card-grid-pc .step-remarks-input {
+        flex: 1;
+        min-height: 140px;
+      }
+    }
+
+    /* CARD STYLES */
+    .card {
+      background: var(--bg-surface);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .card:hover {
+      box-shadow: var(--shadow-md);
+    }
+
+    /* GENERAL REPORT SETTINGS */
+    .report-meta-card {
+      padding: 1.25rem;
+      background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+      border: 1px solid #dbeafe;
+      position: relative;
+    }
+
+    .report-meta-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #1e5ba8 0%, #0284c7 100%);
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      margin-bottom: 0.9rem;
+    }
+
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .form-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .form-input, .form-textarea {
+      width: 100%;
+      padding: 0.75rem 0.9rem;
+      border: 1.5px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      background-color: var(--bg-input);
+      font-size: 0.95rem;
+      color: var(--text-main);
+      font-family: inherit;
+      transition: all 0.2s ease;
+      outline: none;
+    }
+
+    .form-input:focus, .form-textarea:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+
+    .report-title-input {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--primary-navy);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    .meta-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-top: 0.75rem;
+    }
+
+    @media (max-width: 480px) {
+      .meta-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* STEPS SECTION HEADER */
+    .steps-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 0.25rem;
+    }
+
+    .section-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--primary-navy);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .step-counter-pill {
+      font-size: 0.8rem;
+      font-weight: 700;
+      background: #e0f2fe;
+      color: #0369a1;
+      padding: 0.2rem 0.65rem;
+      border-radius: var(--radius-full);
+    }
+
+    /* STEP CARDS */
+    .steps-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .step-card {
+      background: var(--bg-surface);
+      border-radius: var(--radius-lg);
+      border: 1.5px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+      position: relative;
+      transition: transform 0.2s, box-shadow 0.2s;
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .step-card-header {
+      background: #f8fafc;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top-left-radius: calc(var(--radius-lg) - 1.5px);
+      border-top-right-radius: calc(var(--radius-lg) - 1.5px);
+    }
+
+    .step-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: #ffffff;
+      background: var(--primary-navy);
+      padding: 0.3rem 0.75rem;
+      border-radius: var(--radius-full);
+      box-shadow: 0 2px 4px rgba(13, 35, 58, 0.2);
+    }
+
+    .step-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .btn-icon-action {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .btn-icon-action:hover {
+      background: #e2e8f0;
+      color: var(--text-main);
+    }
+
+    .btn-delete-step {
+      color: #dc2626;
+      border-color: #fee2e2;
+      background: #fff5f5;
+    }
+
+    .btn-delete-step:hover {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+
+    .step-card-body {
+      padding: 1.15rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    /* PHOTO ZONE – MULTI-PHOTO GRID */
+    .photo-zone {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    .photo-zone-label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .photo-count-badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      background: #e0f2fe;
+      color: #0369a1;
+      padding: 0.15rem 0.55rem;
+      border-radius: var(--radius-full);
+    }
+
+    /* Thumbnail grid */
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 0.6rem;
+    }
+
+    .photo-thumb-item {
+      position: relative;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      background: #0f172a;
+      border: 1.5px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+      aspect-ratio: 4/3;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    .photo-thumb-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .photo-thumb-del {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background: rgba(220, 38, 38, 0.88);
+      border: none;
+      color: #fff;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.7rem;
+      backdrop-filter: blur(4px);
+      transition: background 0.15s, transform 0.15s;
+      flex-shrink: 0;
+    }
+
+    .photo-thumb-del:hover {
+      background: #dc2626;
+      transform: scale(1.1);
+    }
+
+    .photo-thumb-del svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .photo-thumb-num {
+      position: absolute;
+      bottom: 4px;
+      left: 5px;
+      background: rgba(0,0,0,0.55);
+      color: #fff;
+      font-size: 0.62rem;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 4px;
+      pointer-events: none;
+    }
+
+    /* Add-photo button (compact, always visible when images exist) */
+    .photo-picker-button {
+      border: 2px dashed #93c5fd;
+      background: #f0f7ff;
+      border-radius: var(--radius-md);
+      padding: 1.1rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      color: var(--primary-blue);
+      position: relative;
+      user-select: none;
+    }
+
+    .photo-picker-button.compact {
+      flex-direction: row;
+      padding: 0.6rem 1rem;
+      border-radius: var(--radius-sm);
+      gap: 0.45rem;
+      justify-content: center;
+      font-size: 0.85rem;
+    }
+
+    .photo-picker-button.compact svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .photo-picker-button:hover, .photo-picker-button:active {
+      background: #e0f2fe;
+      border-color: var(--accent-blue);
+      transform: scale(0.99);
+    }
+
+    .photo-picker-button svg {
+      width: 32px;
+      height: 32px;
+      stroke-width: 1.8;
+      color: var(--accent-blue);
+    }
+
+    .photo-picker-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: #1e3a8a;
+    }
+
+    .photo-picker-subtitle {
+      font-size: 0.75rem;
+      color: #64748b;
+    }
+
+    /* EMPTY STATE */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1.5rem;
+      background: var(--bg-surface);
+      border-radius: var(--radius-lg);
+      border: 2px dashed #cbd5e1;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .empty-icon {
+      width: 56px;
+      height: 56px;
+      background: #e2e8f0;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+    }
+
+    /* ADD STEP BUTTON (SECTION BOTTOM) */
+    .btn-add-step {
+      width: 100%;
+      background: #ffffff;
+      border: 2px dashed #3b82f6;
+      color: #2563eb;
+      font-weight: 700;
+      font-size: 1rem;
+      padding: 1rem;
+      border-radius: var(--radius-lg);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-add-step:hover, .btn-add-step:active {
+      background: #eff6ff;
+      border-color: #1d4ed8;
+      color: #1d4ed8;
+      transform: translateY(-1px);
+    }
+
+    .btn-add-step svg {
+      width: 22px;
+      height: 22px;
+      stroke-width: 2.2;
+    }
+
+    /* STICKY BOTTOM ACTION BAR */
+    .bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border-color);
+      padding: 0.85rem 1rem calc(0.85rem + env(safe-area-inset-bottom, 0px));
+      z-index: 50;
+      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+      transition: padding 0.2s ease;
+    }
+    body.dark-mode .bottom-bar {
+      background: rgba(15, 23, 42, 0.96);
+      border-top-color: var(--border-color);
+    }
+
+    .bottom-bar-inner {
+      max-width: var(--container-max-width);
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.85rem;
+    }
+    @media (min-width: 768px) {
+      .bottom-bar-inner {
+        padding: 0 1.5rem;
+        gap: 1.15rem;
+      }
+    }
+    @media (min-width: 1200px) {
+      .bottom-bar-inner {
+        padding: 0 2.5rem;
+      }
+    }
+
+    .btn-download-pdf {
+      flex: 1;
+      max-width: 320px;
+      background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 50%, #0284c7 100%);
+      color: #ffffff;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      padding: 0.85rem 1.4rem;
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+      transition: all 0.2s ease;
+      min-height: 50px;
+    }
+    @media (max-width: 639px) {
+      .btn-download-pdf {
+        max-width: none;
+      }
+    }
+
+    .btn-download-pdf:hover {
+      box-shadow: 0 6px 18px rgba(37, 99, 235, 0.45);
+      filter: brightness(1.05);
+      transform: translateY(-1px);
+    }
+
+    .btn-download-pdf:active {
+      transform: scale(0.98);
+    }
+
+    .btn-download-pdf svg {
+      width: 20px;
+      height: 20px;
+      stroke-width: 2.2;
+    }
+
+    /* SAVE BUTTON */
+    .btn-save-report {
+      background: linear-gradient(135deg, #059669, #10b981);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 0.85rem 1.25rem;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      box-shadow: 0 3px 10px rgba(16,185,129,0.3);
+      transition: all 0.2s ease;
+      min-height: 50px;
+      white-space: nowrap;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .btn-save-report:hover { filter: brightness(1.08); transform: translateY(-1px); }
+    .btn-save-report:active { transform: scale(0.97); }
+    .btn-save-report svg { width: 18px; height: 18px; stroke-width: 2.2; }
+    .btn-save-report.saved {
+      background: linear-gradient(135deg, #374151, #4b5563);
+      box-shadow: none;
+    }
+
+    .btn-quick-add {
+      background: #eff6ff;
+      border: 1.5px solid #bfdbfe;
+      color: #1d4ed8;
+      height: 50px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all 0.15s;
+      padding: 0 1rem;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      gap: 0.5rem;
+    }
+    body.dark-mode .btn-quick-add {
+      background: rgba(30, 91, 168, 0.2);
+      border-color: rgba(59, 130, 246, 0.4);
+      color: #93c5fd;
+    }
+    @media (max-width: 639px) {
+      .btn-quick-add {
+        width: 50px;
+        padding: 0;
+      }
+      .btn-quick-add-text {
+        display: none;
+      }
+    }
+    @media (min-width: 640px) {
+      .btn-quick-add-text {
+        display: inline;
+        font-size: 0.88rem;
+      }
+    }
+
+    .btn-quick-add:hover {
+      background: #dbeafe;
+      transform: translateY(-1px);
+    }
+    body.dark-mode .btn-quick-add:hover {
+      background: rgba(30, 91, 168, 0.35);
+    }
+
+    /* TOAST NOTIFICATION */
+    .toast {
+      position: fixed;
+      bottom: calc(75px + env(safe-area-inset-bottom, 0px));
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #0f172a;
+      color: #ffffff;
+      padding: 0.65rem 1.1rem;
+      border-radius: var(--radius-full);
+      font-size: 0.85rem;
+      font-weight: 600;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 100;
+      max-width: 90%;
+      white-space: nowrap;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+      pointer-events: auto;
+    }
+
+    /* MODAL SPINNER / PROGRESS */
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+
+    .loading-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .loading-card {
+      background: #ffffff;
+      padding: 1.75rem 2rem;
+      border-radius: var(--radius-lg);
+      text-align: center;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      max-width: 320px;
+      width: 90%;
+    }
+
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 4px solid #e2e8f0;
+      border-top-color: var(--accent-blue);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--primary-navy);
+    }
+
+    .loading-desc {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    /* UTILITIES */
+    .hidden {
+      display: none !important;
+    }
+
+    /* ============================================
+       IMAGE EDITOR MODAL
+       ============================================ */
+    .img-editor-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 10, 20, 0.92);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: flex;
+      flex-direction: column;
+      z-index: 300;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .img-editor-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Top toolbar */
+    .editor-topbar {
+      background: linear-gradient(180deg, rgba(13,35,58,0.98) 0%, rgba(9,24,39,0.95) 100%);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding: 0.65rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      flex-shrink: 0;
+      z-index: 1;
+    }
+
+    @media (max-width: 500px) {
+      .editor-topbar {
+        padding: 0.45rem 0.65rem;
+        gap: 0.35rem;
+      }
+    }
+
+    .editor-topbar-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #ffffff;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 500px) {
+      .editor-topbar-title {
+        font-size: 0.72rem;
+        gap: 0.3rem;
+      }
+    }
+
+    .editor-topbar-title svg {
+      width: 18px;
+      height: 18px;
+      color: #60a5fa;
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 500px) {
+      .editor-topbar-title svg {
+        width: 14px;
+        height: 14px;
+      }
+    }
+
+    .editor-topbar-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 500px) {
+      .editor-topbar-actions {
+        gap: 0.3rem;
+      }
+    }
+
+    .editor-btn {
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.15s;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 500px) {
+      .editor-btn {
+        padding: 0.4rem 0.65rem;
+        font-size: 0.7rem;
+        border-radius: 7px;
+        gap: 0.25rem;
+      }
+      .editor-btn svg {
+        width: 12px !important;
+        height: 12px !important;
+      }
+      .editor-btn-cancel .editor-btn-text { display: none; }
+      .editor-confirm-text-full { display: none !important; }
+      .editor-confirm-text-short { display: inline !important; }
+      .editor-topbar-title .editor-btn-text { display: none; }
+    }
+
+    .editor-btn-cancel {
+      background: rgba(255,255,255,0.08);
+      color: #cbd5e1;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .editor-btn-cancel:hover {
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+    }
+
+    .editor-btn-confirm {
+      background: linear-gradient(135deg, #1d4ed8, #0284c7);
+      color: #ffffff;
+      box-shadow: 0 3px 12px rgba(37, 99, 235, 0.4);
+    }
+
+    .editor-btn-confirm:hover {
+      filter: brightness(1.1);
+      box-shadow: 0 4px 16px rgba(37, 99, 235, 0.55);
+    }
+
+    /* Canvas area */
+    .editor-canvas-area {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+      background:
+        radial-gradient(circle at center, rgba(30,91,168,0.05) 0%, transparent 70%),
+        repeating-conic-gradient(rgba(255,255,255,0.03) 0% 25%, transparent 0% 50%) 0 0 / 20px 20px;
+    }
+
+    #editorCanvas {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      cursor: crosshair;
+      touch-action: none;
+      border-radius: 4px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+      display: block;
+    }
+
+    /* Bottom toolbar */
+    .editor-bottombar {
+      background: linear-gradient(0deg, rgba(9,24,39,0.98) 0%, rgba(13,35,58,0.95) 100%);
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding: 0.75rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      flex-shrink: 0;
+      z-index: 1;
+    }
+
+    @media (max-width: 500px) {
+      .editor-bottombar {
+        padding: 0.5rem 0.65rem;
+        gap: 0.45rem;
+      }
+    }
+
+    /* Tool selector row */
+    .editor-tools-row {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .editor-tool-btn {
+      width: 46px;
+      height: 46px;
+      border-radius: 10px;
+      border: 1.5px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      color: #94a3b8;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      transition: all 0.15s;
+      font-size: 0.55rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .editor-tool-btn svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    @media (max-width: 500px) {
+      .editor-tool-btn {
+        width: 38px;
+        height: 38px;
+        border-radius: 8px;
+        font-size: 0.48rem;
+        gap: 1px;
+      }
+      .editor-tool-btn svg {
+        width: 16px;
+        height: 16px;
+      }
+      .editor-tools-row {
+        gap: 0.25rem;
+      }
+    }
+
+    .editor-tool-btn:hover {
+      background: rgba(255,255,255,0.12);
+      color: #e2e8f0;
+      border-color: rgba(255,255,255,0.22);
+    }
+
+    .editor-tool-btn.active {
+      background: rgba(37, 99, 235, 0.35);
+      border-color: #3b82f6;
+      color: #60a5fa;
+      box-shadow: 0 0 0 2px rgba(59,130,246,0.25);
+    }
+
+    .editor-tool-sep {
+      width: 1px;
+      height: 36px;
+      background: rgba(255,255,255,0.1);
+      flex-shrink: 0;
+    }
+
+    /* Color + size row */
+    .editor-options-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .editor-color-swatch {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2.5px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s;
+      flex-shrink: 0;
+      outline: none;
+    }
+
+    @media (max-width: 500px) {
+      .editor-color-swatch {
+        width: 22px;
+        height: 22px;
+      }
+      .editor-options-row {
+        gap: 0.35rem;
+      }
+    }
+
+    .editor-color-swatch:hover {
+      transform: scale(1.15);
+    }
+
+    .editor-color-swatch.active {
+      border-color: #ffffff;
+      transform: scale(1.18);
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.3);
+    }
+
+    .editor-color-custom {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2.5px dashed rgba(255,255,255,0.4);
+      cursor: pointer;
+      background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red);
+      flex-shrink: 0;
+      transition: all 0.15s;
+      padding: 0;
+    }
+
+    .editor-color-custom:hover {
+      transform: scale(1.15);
+    }
+
+    .editor-size-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .editor-size-label {
+      font-size: 0.7rem;
+      color: #64748b;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .editor-size-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 80px;
+      height: 4px;
+      border-radius: 4px;
+      background: linear-gradient(90deg, #3b82f6, #3b82f6) no-repeat, #334155;
+      background-size: 50% 100%;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .editor-size-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #3b82f6;
+      border: 2px solid #fff;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    }
+
+    .editor-undo-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      border: 1.5px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      color: #94a3b8;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    .editor-undo-btn:hover {
+      background: rgba(255,255,255,0.15);
+      color: #e2e8f0;
+    }
+
+    .editor-undo-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="app-header">
+    <div class="header-content">
+      <div class="header-left">
+        <!-- Back button: visible only in editor mode -->
+        <button type="button" class="btn-back hidden" id="btnBack" title="Mes rapports">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <div class="app-branding">
+          <a href="index.html" aria-label="ViteReport" style="display:flex; align-items:center;">
+            <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" style="height:34px; width:auto; flex-shrink:0; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+              <defs>
+                <linearGradient id="vGradApp" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#00c6ff"/>
+                  <stop offset="60%" stop-color="#0072ff"/>
+                  <stop offset="100%" stop-color="#1a56db"/>
+                </linearGradient>
+              </defs>
+              <path d="M10 15 L50 95 L60 75 L70 95 L110 15 L90 15 L60 68 L30 15 Z" fill="url(#vGradApp)"/>
+              <rect x="68" y="8" width="34" height="42" rx="4" fill="white" opacity="0.95"/>
+              <path d="M90 8 L102 20 L90 20 Z" fill="#e2e8f0"/>
+              <rect x="74" y="25" width="20" height="2.5" rx="1.2" fill="#0072ff" opacity="0.7"/>
+              <rect x="74" y="31" width="16" height="2.5" rx="1.2" fill="#0072ff" opacity="0.5"/>
+              <rect x="74" y="37" width="18" height="2.5" rx="1.2" fill="#0072ff" opacity="0.5"/>
+            </svg>
+          </a>
+          <div class="app-title-group">
+            <h1 id="headerTitle">ViteReport</h1>
+            <div class="app-subtitle" id="headerSubtitle">Mes rapports</div>
+          </div>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="lang-switcher">
+          <button class="btn-lang active" data-lang="fr">FR</button>
+          <button class="btn-lang" data-lang="ar">AR</button>
+          <button class="btn-lang" data-lang="en">EN</button>
+          <button class="btn-lang" data-lang="es">ES</button>
+        </div>
+        <button class="btn-darkmode" id="btnDarkMode" title="Mode sombre">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="darkModeIcon">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
+        <div class="badge-offline hidden" id="badgeOffline">100% Hors-ligne</div>
+      </div>
+  </header>
+
+  <!-- SCREEN 1: RAPPORTS LIST -->
+  <div id="reportsScreen">
+    <div class="reports-screen-header">
+      <div class="reports-screen-title-wrap">
+        <div class="reports-screen-title">
+          <span id="lblMyReports">Mes rapports</span>
+          <span class="reports-count-pill" id="reportsCountPill">0</span>
+        </div>
+        <p class="reports-screen-desc" id="lblReportsDesc">Gérez, inspectez et exportez vos chantiers en toute autonomie.</p>
+      </div>
+      <button type="button" class="btn-new-report" id="btnNewReport">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        <span id="lblNewReport">Nouveau rapport</span>
+      </button>
+    </div>
+
+    <!-- Toolbar: Search + Filters -->
+    <div class="reports-toolbar">
+      <!-- Search bar -->
+      <div class="reports-search-bar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input type="text" class="reports-search-input" id="reportsSearchInput" placeholder="Rechercher un rapport..." autocomplete="off">
+      </div>
+
+      <!-- Filter tabs -->
+      <div class="reports-filter-row">
+        <button class="btn-filter active" data-filter="all" id="filterAll">Tous</button>
+        <button class="btn-filter" data-filter="draft" id="filterDraft">🟡 Brouillon</button>
+        <button class="btn-filter" data-filter="done" id="filterDone">🟢 Terminé</button>
+        <button class="btn-filter" data-filter="exported" id="filterExported">🔵 Exporté</button>
+      </div>
+    </div>
+
+    <!-- Report cards injected by JS -->
+    <div id="reportsListContainer"></div>
+
+    <!-- Empty state -->
+    <div class="reports-empty hidden" id="reportsEmptyState">
+      <div class="reports-empty-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="12" y1="11" x2="12" y2="17"/>
+          <line x1="9" y1="14" x2="15" y2="14"/>
+        </svg>
+      </div>
+      <p style="font-weight:700;font-size:0.95rem" id="lblNoReports">Aucun rapport pour le moment</p>
+      <p style="font-size:0.82rem;max-width:320px" id="lblNoReportsHint">Créez votre premier rapport d'inspection en cliquant sur le bouton ci-dessus.</p>
+    </div>
+  </div>
+
+  <!-- CUSTOM DELETE CONFIRMATION MODAL -->
+  <div class="confirm-modal-backdrop" id="confirmDeleteModal">
+    <div class="confirm-modal">
+      <div class="confirm-modal-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+        </svg>
+      </div>
+      <div class="confirm-modal-title" id="confirmModalTitle">Supprimer ce rapport ?</div>
+      <div class="confirm-modal-desc" id="confirmModalDesc">Cette action est irréversible. Le rapport et toutes ses étapes seront définitivement supprimés.</div>
+      <div class="confirm-modal-actions">
+        <button class="btn-confirm-cancel" id="confirmCancelBtn">Annuler</button>
+        <button class="btn-confirm-delete" id="confirmDeleteBtn">🗑️ Supprimer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============================
+       SCREEN 2: EDITOR
+       ============================= -->
+  <div id="editorScreen" class="hidden">
+  <!-- MAIN VIEW -->
+  <main class="app-container">
+    <div class="editor-desktop-layout">
+      <!-- LEFT SIDEBAR: Metadata Card -->
+      <aside class="editor-sidebar-col">
+        <section class="card report-meta-card">
+          <div class="form-group">
+            <label for="reportTitle" class="form-label">
+              <span id="lblReportTitle">Titre du rapport</span>
+              <span id="lblReportTitleHint" style="font-weight: normal; font-size: 0.72rem; text-transform: none; color: #94a3b8;">(Par défaut : Rapport d'inspection)</span>
+            </label>
+            <input 
+              type="text" 
+              id="reportTitle" 
+              class="form-input report-title-input" 
+              placeholder="Ex: Audit de sécurité - Tour A"
+              autocomplete="off"
+            >
+          </div>
+
+          <div class="meta-row">
+            <div class="form-group">
+              <label for="reportDate" class="form-label" id="lblReportDate">Date d'inspection</label>
+              <input type="date" id="reportDate" class="form-input">
+            </div>
+            <div class="form-group">
+              <label for="inspectorName" class="form-label" id="lblInspectorName">Inspecteur / Opérateur</label>
+              <input type="text" id="inspectorName" class="form-input" placeholder="Ex: Jean Dupont">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 0.5rem;">
+            <label for="reportLocation" class="form-label" id="lblReportLocation">Lieu / Chantier</label>
+            <input type="text" id="reportLocation" class="form-input" placeholder="Ex: Chantier Batignolles, Paris">
+          </div>
+
+          <div class="form-group" style="margin-top: 0.5rem;">
+            <label for="reportLocationDesc" class="form-label" id="lblLocationDesc">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:0.25rem"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              <span>Décrivez l'emplacement du rapport</span>
+            </label>
+            <textarea 
+              id="reportLocationDesc" 
+              class="form-input" 
+              rows="3" 
+              placeholder="Ex: Bâtiment A, 3ème étage, salle des machines. Accès par l'escalier nord. Zone sensible."
+              style="resize:vertical;min-height:80px;line-height:1.5;"
+            ></textarea>
+          </div>
+        </section>
+      </aside>
+
+      <!-- RIGHT COLUMN: Inspection Steps workspace -->
+      <section class="editor-main-col">
+        <!-- STEPS HEADER -->
+        <div class="steps-section-header">
+          <div class="section-title">
+            <span id="lblStepsHeader">Étapes d'inspection</span>
+            <span class="step-counter-pill" id="stepCountBadge">0 étape</span>
+          </div>
+          <button type="button" class="btn-icon-action" id="btnClearAll" title="Réinitialiser le rapport" style="font-size: 0.75rem; width: auto; padding: 0 0.5rem; gap: 0.3rem;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18m-2 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path></svg>
+            <span id="lblClearAll">Effacer tout</span>
+          </button>
+        </div>
+
+        <!-- STEPS CONTAINER -->
+        <div class="steps-list" id="stepsContainer">
+          <!-- Steps injected dynamically via JavaScript -->
+        </div>
+
+        <!-- EMPTY STATE MESSAGE -->
+        <div class="empty-state" id="emptyState">
+          <div class="empty-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="12" y1="8" x2="12" y2="16"></line>
+              <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+          </div>
+          <p style="font-weight: 600; color: #1e293b;" id="lblEmptyStepsTitle">Aucune étape pour le moment</p>
+          <p style="font-size: 0.85rem; max-width: 320px;" id="lblEmptyStepsDesc">Cliquez sur le bouton ci-dessous pour ajouter votre première étape avec photo et remarques.</p>
+        </div>
+
+        <!-- ADD STEP BUTTON -->
+        <button type="button" class="btn-add-step" id="btnAddStep">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span id="lblAddStep">Ajouter une étape</span>
+        </button>
+      </section>
+    </div>
+  </main>
+  </div> <!-- /#editorScreen -->
+
+  <!-- BOTTOM STICKY ACTION BAR -->
+  <footer class="bottom-bar" id="editorBottomBar">
+    <div class="bottom-bar-inner">
+      <button type="button" class="btn-quick-add" id="btnQuickAdd" title="Ajouter une étape" aria-label="Ajouter une étape">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span class="btn-quick-add-text" id="lblQuickAdd">Ajouter une étape</span>
+      </button>
+      <button type="button" class="btn-save-report" id="btnSaveReport">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="7 3 7 8 15 8"/>
+        </svg>
+        <span id="lblSave">Enregistrer</span>
+      </button>
+      <button type="button" class="btn-download-pdf" id="btnDownloadPdf">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span id="lblPdf">Exporter</span>
+      </button>
+    </div>
+  </footer>
+
+  <!-- EXPORT FORMAT MODAL -->
+  <div class="export-modal-backdrop" id="exportModal">
+    <div class="export-modal">
+      <div class="export-modal-handle"></div>
+      <div class="export-modal-title">📤 Choisir le format d'export</div>
+      <div class="export-modal-subtitle">Le rapport contient <span id="exportStepCount">0</span> étape(s)</div>
+      <div class="export-format-grid">
+        <!-- PDF -->
+        <button class="export-format-btn" data-export="pdf">
+          <div class="export-format-icon pdf">📄</div>
+          <div>
+            <div class="export-format-name">PDF</div>
+            <div class="export-format-desc">Rapport portable avec mise en page professionnelle</div>
+          </div>
+          <span class="export-format-tag">.pdf</span>
+        </button>
+        <!-- PPTX -->
+        <button class="export-format-btn" data-export="pptx">
+          <div class="export-format-icon pptx">📊</div>
+          <div>
+            <div class="export-format-name">Présentation PowerPoint</div>
+            <div class="export-format-desc">Une diapositive par étape, idéal pour les réunions</div>
+          </div>
+          <span class="export-format-tag">.pptx</span>
+        </button>
+        <!-- WORD -->
+        <button class="export-format-btn" data-export="word">
+          <div class="export-format-icon word">📝</div>
+          <div>
+            <div class="export-format-name">Document Word</div>
+            <div class="export-format-desc">Document éditable avec photos et remarques</div>
+          </div>
+          <span class="export-format-tag">.doc</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- IMAGE EDITOR MODAL -->
+  <div class="img-editor-overlay" id="imgEditorOverlay" role="dialog" aria-modal="true" aria-label="Éditeur d'image">
+    <!-- Top bar -->
+    <div class="editor-topbar">
+      <div class="editor-topbar-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
+        </svg>
+        <span class="editor-btn-text">Annoter la photo</span>
+      </div>
+      <div class="editor-topbar-actions">
+        <button type="button" class="editor-btn editor-btn-cancel" id="editorBtnCancel" title="Annuler">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <span class="editor-btn-text">Annuler</span>
+        </button>
+        <button type="button" class="editor-btn editor-btn-confirm" id="editorBtnConfirm">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <span class="editor-btn-text editor-confirm-text-full">Utiliser cette photo</span>
+          <span class="editor-confirm-text-short" style="display:none">✓ Valider</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Canvas -->
+    <div class="editor-canvas-area" id="editorCanvasArea">
+      <canvas id="editorCanvas"></canvas>
+    </div>
+
+    <!-- Bottom Toolbar -->
+    <div class="editor-bottombar">
+      <!-- Tool Buttons Row -->
+      <div class="editor-tools-row">
+        <!-- Pen -->
+        <button type="button" class="editor-tool-btn active" data-tool="pen" title="Stylo libre" id="toolPen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
+          </svg>
+          Stylo
+        </button>
+        <!-- Arrow -->
+        <button type="button" class="editor-tool-btn" data-tool="arrow" title="Flèche" id="toolArrow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="5" y1="19" x2="19" y2="5"/>
+            <polyline points="9 5 19 5 19 15"/>
+          </svg>
+          Flèche
+        </button>
+        <!-- Circle -->
+        <button type="button" class="editor-tool-btn" data-tool="circle" title="Cercle" id="toolCircle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="9"/>
+          </svg>
+          Cercle
+        </button>
+        <!-- Rectangle -->
+        <button type="button" class="editor-tool-btn" data-tool="rect" title="Rectangle" id="toolRect">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="5" width="18" height="14" rx="2"/>
+          </svg>
+          Cadre
+        </button>
+        <!-- Dot -->
+        <button type="button" class="editor-tool-btn" data-tool="dot" title="Point" id="toolDot">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="12" r="5"/>
+          </svg>
+          Point
+        </button>
+        <!-- Text -->
+        <button type="button" class="editor-tool-btn" data-tool="text" title="Texte" id="toolText">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/>
+          </svg>
+          Texte
+        </button>
+
+        <div class="editor-tool-sep"></div>
+
+        <!-- Undo -->
+        <button type="button" class="editor-undo-btn" id="editorBtnUndo" title="Annuler la dernière action">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M3 7v6h6"/>
+            <path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Colors + Size Row -->
+      <div class="editor-options-row">
+        <!-- Preset colors -->
+        <button type="button" class="editor-color-swatch active" data-color="#FF3B30" style="background:#FF3B30" title="Rouge"></button>
+        <button type="button" class="editor-color-swatch" data-color="#FF9F0A" style="background:#FF9F0A" title="Orange"></button>
+        <button type="button" class="editor-color-swatch" data-color="#FFD60A" style="background:#FFD60A" title="Jaune"></button>
+        <button type="button" class="editor-color-swatch" data-color="#30D158" style="background:#30D158" title="Vert"></button>
+        <button type="button" class="editor-color-swatch" data-color="#0A84FF" style="background:#0A84FF" title="Bleu"></button>
+        <button type="button" class="editor-color-swatch" data-color="#BF5AF2" style="background:#BF5AF2" title="Violet"></button>
+        <button type="button" class="editor-color-swatch" data-color="#ffffff" style="background:#ffffff;border-color:rgba(255,255,255,0.4)" title="Blanc"></button>
+        <button type="button" class="editor-color-swatch" data-color="#1C1C1E" style="background:#1C1C1E;border-color:rgba(255,255,255,0.2)" title="Noir"></button>
+        <!-- Custom color picker (hidden input) -->
+        <label title="Couleur personnalisée" style="cursor:pointer;flex-shrink:0">
+          <div class="editor-color-custom" id="customColorDisplay"></div>
+          <input type="color" id="editorColorInput" value="#FF3B30" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none">
+        </label>
+
+        <div class="editor-tool-sep" style="margin:0 0.25rem"></div>
+
+        <!-- Size slider -->
+        <div class="editor-size-row">
+          <span class="editor-size-label">Taille</span>
+          <input type="range" min="2" max="30" value="5" class="editor-size-slider" id="editorSizeSlider">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST FEEDBACK -->
+  <div class="toast" id="toastNotice">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    <span id="toastMsg">Action réussie</span>
+  </div>
+
+  <!-- LOADING / GENERATION OVERLAY -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-card">
+      <div class="spinner"></div>
+      <div class="loading-title">Génération du PDF...</div>
+      <div class="loading-desc">Mise en page, compression des photos et pagination en cours.</div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * APPLICATION LOGIC
+     * - Multi-report management via localStorage
+     * - i18n: FR / AR / EN / ES
+     * - Dark mode toggle
+     * - Screen navigation: list <-> editor
+     * - Auto-save + manual save
+     * - PDF generation per report
+     */
+
+    // ================================================================
+    // i18n TRANSLATIONS
+    // ================================================================
+    const i18n = {
+      fr: {
+        appTitle: "ViteReport",
+        myReports: "Mes rapports",
+        reportsDesc: "Gérez, inspectez et exportez vos chantiers en toute autonomie.",
+        newReport: "Nouveau rapport",
+        searchPlaceholder: "Rechercher un rapport...",
+        filterAll: "Tous",
+        statusDraft: "Brouillon",
+        statusDone: "Terminé",
+        statusExported: "Exporté",
+        noReports: "Aucun rapport pour le moment",
+        noReportsHint: "Créez votre premier rapport d'inspection en cliquant sur le bouton ci-dessus.",
+        noSearchResults: (q) => `Aucun résultat pour "${escapeHtml(q)}"`,
+        save: "Enregistrer",
+        saved: "Sauvé",
+        pdf: "Exporter",
+        offline: "100% Hors-ligne",
+        reportTitle: "Titre du rapport",
+        reportDate: "Date d'inspection",
+        inspector: "Inspecteur / Opérateur",
+        location: "Lieu / Chantier",
+        locationDesc: "Décrivez l'emplacement du rapport",
+        steps: "Étapes d'inspection",
+        addStep: "Ajouter une étape",
+        clearAll: "Effacer tout",
+        subtitle: "Outil autonome de saisie terrain",
+        subtitleEditor: "En cours d'édition",
+        openReport: "Ouvrir",
+        duplicateReport: "Dupliquer",
+        deleteReport: "Supprimer",
+        downloadPdf: "Télécharger PDF",
+        confirmDelete: "Voulez-vous vraiment supprimer ce rapport ?",
+        confirmClear: "Voulez-vous vraiment effacer tout le rapport et repartir de zéro ?",
+        reportSaved: "Rapport sauvegardé !",
+        pdfDownloaded: "Rapport téléchargé !",
+        reportDeleted: "Rapport supprimé",
+        reportDuplicated: "Rapport dupliqué !",
+        newStepAdded: "Nouvelle étape ajoutée",
+        stepDeleted: "Étape supprimée",
+        stepMoved: "Étape déplacée",
+        photoAdded: "✅ Photo annotée ajoutée !",
+        photoRemoved: "Photo supprimée",
+        resetDone: "Rapport réinitialisé",
+        stepsLabel: (n) => n === 1 ? "1 étape" : `${n} étapes`,
+        noTitle: "Rapport sans titre",
+        noLocation: "Lieu non défini",
+        stepsCount: (n) => `${n} étape${n !== 1 ? 's' : ''}`,
+        remarksLabel: (n) => `${n} remarque${n > 1 ? 's' : ''}`,
+        modifiedAt: "Modifié",
+      },
+      en: {
+        appTitle: "ViteReport",
+        myReports: "My Reports",
+        reportsDesc: "Manage, inspect and export your sites with complete autonomy.",
+        newReport: "New Report",
+        searchPlaceholder: "Search a report...",
+        filterAll: "All",
+        statusDraft: "Draft",
+        statusDone: "Completed",
+        statusExported: "Exported",
+        noReports: "No reports yet",
+        noReportsHint: "Create your first inspection report by clicking the button above.",
+        noSearchResults: (q) => `No results for "${escapeHtml(q)}"`,
+        save: "Save",
+        saved: "Saved",
+        pdf: "Export",
+        offline: "100% Offline",
+        reportTitle: "Report title",
+        reportDate: "Inspection date",
+        inspector: "Inspector / Operator",
+        location: "Location / Site",
+        locationDesc: "Describe the report location",
+        steps: "Inspection steps",
+        addStep: "Add a step",
+        clearAll: "Clear all",
+        subtitle: "Autonomous field data capture",
+        subtitleEditor: "Editing",
+        openReport: "Open",
+        duplicateReport: "Duplicate",
+        deleteReport: "Delete",
+        downloadPdf: "Download PDF",
+        confirmDelete: "Are you sure you want to delete this report?",
+        confirmClear: "Are you sure you want to clear the report and start over?",
+        reportSaved: "Report saved!",
+        pdfDownloaded: "Report downloaded!",
+        reportDeleted: "Report deleted",
+        reportDuplicated: "Report duplicated!",
+        newStepAdded: "New step added",
+        stepDeleted: "Step deleted",
+        stepMoved: "Step moved",
+        photoAdded: "✅ Annotated photo added!",
+        photoRemoved: "Photo removed",
+        resetDone: "Report reset",
+        stepsLabel: (n) => n === 1 ? "1 step" : `${n} steps`,
+        noTitle: "Untitled report",
+        noLocation: "Location undefined",
+        stepsCount: (n) => `${n} step${n !== 1 ? 's' : ''}`,
+        remarksLabel: (n) => `${n} remark${n > 1 ? 's' : ''}`,
+        modifiedAt: "Modified",
+      },
+      es: {
+        appTitle: "ViteReport",
+        myReports: "Mis informes",
+        reportsDesc: "Gestione, inspeccione y exporte sus obras con total autonomía.",
+        newReport: "Nuevo informe",
+        searchPlaceholder: "Buscar un informe...",
+        filterAll: "Todos",
+        statusDraft: "Borrador",
+        statusDone: "Completado",
+        statusExported: "Exportado",
+        noReports: "Sin informes todavía",
+        noReportsHint: "Cree su primer informe haciendo clic en el botón de arriba.",
+        noSearchResults: (q) => `Sin resultados para "${escapeHtml(q)}"`,
+        save: "Guardar",
+        saved: "Guardado",
+        pdf: "Exportar",
+        offline: "100% Sin conexión",
+        reportTitle: "Título del informe",
+        reportDate: "Fecha de inspección",
+        inspector: "Inspector / Operador",
+        location: "Lugar / Obra",
+        locationDesc: "Describa la ubicación del informe",
+        steps: "Pasos de inspección",
+        addStep: "Añadir paso",
+        clearAll: "Borrar todo",
+        subtitle: "Herramienta de captura en campo",
+        subtitleEditor: "Editando",
+        openReport: "Abrir",
+        duplicateReport: "Duplicar",
+        deleteReport: "Eliminar",
+        downloadPdf: "Descargar PDF",
+        confirmDelete: "¿Está seguro de que desea eliminar este informe?",
+        confirmClear: "¿Está seguro de que desea borrar el informe y empezar de nuevo?",
+        reportSaved: "¡Informe guardado!",
+        pdfDownloaded: "¡Informe descargado!",
+        reportDeleted: "Informe eliminado",
+        reportDuplicated: "¡Informe duplicado!",
+        newStepAdded: "Nuevo paso añadido",
+        stepDeleted: "Paso eliminado",
+        stepMoved: "Paso movido",
+        photoAdded: "✅ ¡Foto anotada añadida!",
+        photoRemoved: "Foto eliminada",
+        resetDone: "Informe reiniciado",
+        stepsLabel: (n) => n === 1 ? "1 paso" : `${n} pasos`,
+        noTitle: "Informe sin título",
+        noLocation: "Ubicación no definida",
+        stepsCount: (n) => `${n} paso${n !== 1 ? 's' : ''}`,
+        remarksLabel: (n) => `${n} observación${n > 1 ? 'es' : ''}`,
+        modifiedAt: "Modificado",
+      },
+      ar: {
+        appTitle: "ViteReport",
+        myReports: "تقاريري",
+        reportsDesc: "إدارة وفحص وتصدير تقارير مواقع العمل باستقلالية كاملة.",
+        newReport: "تقرير جديد",
+        searchPlaceholder: "البحث عن تقرير...",
+        filterAll: "الكل",
+        statusDraft: "مسودة",
+        statusDone: "مكتمل",
+        statusExported: "تم التصدير",
+        noReports: "لا تقارير بعد",
+        noReportsHint: "أنشئ أول تقرير تفتيش بالنقر فوق الزر أعلاه.",
+        noSearchResults: (q) => `لا توجد نتائج لـ "${escapeHtml(q)}"`,
+        save: "حفظ",
+        saved: "تم الحفظ",
+        pdf: "تصدير",
+        offline: "100% غير متصل",
+        reportTitle: "عنوان التقرير",
+        reportDate: "تاريخ التفتيش",
+        inspector: "المفتش / المشغل",
+        location: "الموقع / الورشة",
+        locationDesc: "صف موقع التقرير",
+        steps: "خطوات التفتيش",
+        addStep: "إضافة خطوة",
+        clearAll: "مسح الكل",
+        subtitle: "أداة جمع بيانات ميدانية",
+        subtitleEditor: "جاري التحرير",
+        openReport: "فتح",
+        duplicateReport: "نسخ",
+        deleteReport: "حذف",
+        downloadPdf: "تحميل PDF",
+        confirmDelete: "هل تريد حذف هذا التقرير؟",
+        confirmClear: "هل تريد مسح التقرير والبدء من جديد؟",
+        reportSaved: "تم حفظ التقرير!",
+        pdfDownloaded: "تم تحميل التقرير!",
+        reportDeleted: "تم حذف التقرير",
+        reportDuplicated: "تم نسخ التقرير!",
+        newStepAdded: "تمت إضافة خطوة جديدة",
+        stepDeleted: "تم حذف الخطوة",
+        stepMoved: "تم نقل الخطوة",
+        photoAdded: "✅ تمت إضافة الصورة!",
+        photoRemoved: "تم حذف الصورة",
+        resetDone: "تمت إعادة تعيين التقرير",
+        stepsLabel: (n) => `${n} خطوة`,
+        noTitle: "تقرير بدون عنوان",
+        noLocation: "الموقع غير محدد",
+        stepsCount: (n) => `${n} خطوة`,
+        remarksLabel: (n) => `${n} ملاحظة`,
+        modifiedAt: "تم التعديل",
+      }
+    };
+
+    let currentLang = localStorage.getItem('app_lang') || 'fr';
+    const t = () => i18n[currentLang] || i18n.fr;
+
+    function applyLang() {
+      const tr = t();
+      // HTML dir for Arabic
+      document.documentElement.lang = currentLang;
+      document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+      // Header
+      const headerTitle = document.getElementById('headerTitle');
+      if (headerTitle) headerTitle.textContent = tr.appTitle;
+      const badgeOffline = document.getElementById('badgeOffline');
+      if (badgeOffline) badgeOffline.textContent = tr.offline;
+
+      // Header subtitle
+      const headerSubtitle = document.getElementById('headerSubtitle');
+      if (headerSubtitle) {
+        if (!state.currentReportId) {
+          headerSubtitle.textContent = tr.myReports;
+        } else {
+          headerSubtitle.textContent = tr.subtitleEditor;
+        }
+      }
+
+      // List screen elements
+      const lblMyReports = document.getElementById('lblMyReports');
+      if (lblMyReports) lblMyReports.textContent = tr.myReports;
+      const lblReportsDesc = document.getElementById('lblReportsDesc');
+      if (lblReportsDesc) lblReportsDesc.textContent = tr.reportsDesc;
+      const lblNewReport = document.getElementById('lblNewReport');
+      if (lblNewReport) lblNewReport.textContent = tr.newReport;
+      const lblNoReports = document.getElementById('lblNoReports');
+      if (lblNoReports) lblNoReports.textContent = tr.noReports;
+      const lblNoReportsHint = document.getElementById('lblNoReportsHint');
+      if (lblNoReportsHint) lblNoReportsHint.textContent = tr.noReportsHint;
+
+      // Search & Filters
+      const searchInput = document.getElementById('reportsSearchInput');
+      if (searchInput) searchInput.placeholder = tr.searchPlaceholder;
+      const filterAll = document.getElementById('filterAll');
+      if (filterAll) filterAll.textContent = tr.filterAll;
+      const filterDraft = document.getElementById('filterDraft');
+      if (filterDraft) filterDraft.innerHTML = '🟡 ' + tr.statusDraft;
+      const filterDone = document.getElementById('filterDone');
+      if (filterDone) filterDone.innerHTML = '🟢 ' + tr.statusDone;
+      const filterExported = document.getElementById('filterExported');
+      if (filterExported) filterExported.innerHTML = '🔵 ' + tr.statusExported;
+
+      // Editor bottom bar & buttons
+      const lblSave = document.getElementById('lblSave');
+      if (lblSave) lblSave.textContent = tr.save;
+      const lblPdf = document.getElementById('lblPdf');
+      if (lblPdf) lblPdf.textContent = tr.pdf;
+      const lblQuickAdd = document.getElementById('lblQuickAdd');
+      if (lblQuickAdd) lblQuickAdd.textContent = tr.addStep;
+      const lblAddStep = document.getElementById('lblAddStep');
+      if (lblAddStep) lblAddStep.textContent = tr.addStep;
+      const lblClearAll = document.getElementById('lblClearAll');
+      if (lblClearAll) lblClearAll.textContent = tr.clearAll;
+
+      // Editor form labels
+      const lblTitle = document.getElementById('lblReportTitle');
+      if (lblTitle) lblTitle.textContent = tr.reportTitle;
+      const lblDate = document.getElementById('lblReportDate');
+      if (lblDate) lblDate.textContent = tr.reportDate;
+      const lblInsp = document.getElementById('lblInspectorName');
+      if (lblInsp) lblInsp.textContent = tr.inspector;
+      const lblLoc = document.getElementById('lblReportLocation');
+      if (lblLoc) lblLoc.textContent = tr.location;
+      const lblLocDesc = document.querySelector('#lblLocationDesc span');
+      if (lblLocDesc) lblLocDesc.textContent = tr.locationDesc;
+      const lblStepsHeader = document.getElementById('lblStepsHeader');
+      if (lblStepsHeader) lblStepsHeader.textContent = tr.steps;
+
+      // Lang buttons active state
+      document.querySelectorAll('.btn-lang').forEach(b => {
+        b.classList.toggle('active', b.dataset.lang === currentLang);
+      });
+
+      // Update counters & step titles
+      if (typeof updateCounters === 'function') {
+        updateCounters();
+      }
+
+      // Refresh list if on list screen
+      if (typeof renderReportsList === 'function') {
+        renderReportsList();
+      }
+    }
+
+    // Lang buttons
+    document.querySelectorAll('.btn-lang').forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentLang = btn.dataset.lang;
+        localStorage.setItem('app_lang', currentLang);
+        applyLang();
+      });
+    });
+
+    // ================================================================
+    // DARK MODE
+    // ================================================================
+    let darkMode = localStorage.getItem('app_dark') === '1' || localStorage.getItem('app_dark_mode') === 'true';
+    function applyDark() {
+      document.body.classList.toggle('dark-mode', darkMode);
+      localStorage.setItem('app_dark', darkMode ? '1' : '0');
+      localStorage.setItem('app_dark_mode', darkMode ? 'true' : 'false');
+      const icon = document.getElementById('darkModeIcon');
+      if (icon) {
+        icon.innerHTML = darkMode
+          ? '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>'
+          : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+      }
+    }
+    document.getElementById('btnDarkMode').addEventListener('click', () => {
+      darkMode = !darkMode;
+      applyDark();
+    });
+
+    // ================================================================
+    // MULTI-REPORT STORAGE
+    // ================================================================
+    const REPORTS_INDEX_KEY = 'reports_index_v2';
+    const LEGACY_KEY        = 'field_inspection_report_draft';
+    const STORAGE_KEY       = 'field_inspection_report_draft'; // kept for compat
+
+    function getAllReportsMeta() {
+      try {
+        return JSON.parse(localStorage.getItem(REPORTS_INDEX_KEY) || '[]');
+      } catch { return []; }
+    }
+
+    function saveReportsMeta(list) {
+      localStorage.setItem(REPORTS_INDEX_KEY, JSON.stringify(list));
+    }
+
+    function getReportData(id) {
+      try {
+        return JSON.parse(localStorage.getItem('report_data_' + id) || 'null');
+      } catch { return null; }
+    }
+
+    function saveReportData(id, data) {
+      try {
+        localStorage.setItem('report_data_' + id, JSON.stringify(data));
+      } catch (e) { console.warn('Storage quota', e); }
+    }
+
+    function deleteReportData(id) {
+      localStorage.removeItem('report_data_' + id);
+    }
+
+    function generateId() {
+      return 'rpt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+    }
+
+    // Migrate old single-draft to multi-report system
+    function migrateLegacy() {
+      const legacy = localStorage.getItem(LEGACY_KEY);
+      if (!legacy) return;
+      try {
+        const d = JSON.parse(legacy);
+        if (d && (d.title || (d.steps && d.steps.length > 0))) {
+          const id = generateId();
+          const meta = {
+            id, title: d.title || t().noTitle,
+            date: d.date || '', location: d.location || '',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            stepsCount: Array.isArray(d.steps) ? d.steps.length : 0
+          };
+          const data = { ...d, id };
+          const list = getAllReportsMeta();
+          list.unshift(meta);
+          saveReportsMeta(list);
+          saveReportData(id, data);
+          localStorage.removeItem(LEGACY_KEY);
+        } else {
+          localStorage.removeItem(LEGACY_KEY);
+        }
+      } catch { localStorage.removeItem(LEGACY_KEY); }
+    }
+
+    // ================================================================
+    // APP STATE (current report being edited)
+    // ================================================================
+    const state = {
+      currentReportId: null,
+      title: "",
+      date: new Date().toISOString().split("T")[0],
+      inspector: "",
+      location: "",
+      steps: []
+    };
+
+    // DOM Elements
+    const reportTitleEl   = document.getElementById("reportTitle");
+    const reportDateEl    = document.getElementById("reportDate");
+    const inspectorNameEl = document.getElementById("inspectorName");
+    const reportLocationEl     = document.getElementById("reportLocation");
+    const reportLocationDescEl = document.getElementById("reportLocationDesc");
+    const stepsContainer  = document.getElementById("stepsContainer");
+    const emptyState      = document.getElementById("emptyState");
+    const stepCountBadge  = document.getElementById("stepCountBadge");
+    const btnAddStep      = document.getElementById("btnAddStep");
+    const btnQuickAdd     = document.getElementById("btnQuickAdd");
+    const btnDownloadPdf  = document.getElementById("btnDownloadPdf");
+    const btnClearAll     = document.getElementById("btnClearAll");
+    const btnSaveReport   = document.getElementById("btnSaveReport");
+    const btnBack         = document.getElementById("btnBack");
+    const toastNotice     = document.getElementById("toastNotice");
+    const toastMsg        = document.getElementById("toastMsg");
+    const loadingOverlay  = document.getElementById("loadingOverlay");
+    const editorScreen    = document.getElementById("editorScreen");
+    const reportsScreen   = document.getElementById("reportsScreen");
+    const editorBottomBar = document.getElementById("editorBottomBar");
+
+    reportDateEl.value = state.date;
+
+    // Toast helper
+    let toastTimeout;
+    function showToast(message) {
+      toastMsg.textContent = message;
+      toastNotice.classList.add("show");
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toastNotice.classList.remove("show");
+      }, 2500);
+    }
+
+    // ================================================================
+    // SAVE / LOAD current report
+    // ================================================================
+    function buildCurrentPayload() {
+      return {
+        id: state.currentReportId,
+        title: reportTitleEl.value,
+        date: reportDateEl.value,
+        inspector: inspectorNameEl.value,
+        location: reportLocationEl.value,
+        locationDesc: reportLocationDescEl.value,
+        steps: state.steps.map(s => ({
+          id: s.id,
+          title: s.title,
+          remarks: s.remarks,
+          images: s.images || []
+        }))
+      };
+    }
+
+    function saveToStorage() {
+      if (!state.currentReportId) return;
+      const payload = buildCurrentPayload();
+      saveReportData(state.currentReportId, payload);
+      // Count steps with non-empty remarks
+      const remarksCount = (payload.steps || []).filter(s => s.remarks && s.remarks.trim()).length;
+      // Update meta index
+      const list = getAllReportsMeta();
+      const idx = list.findIndex(r => r.id === state.currentReportId);
+      const existing = idx >= 0 ? list[idx] : {};
+      const meta = {
+        id: state.currentReportId,
+        title: payload.title || t().noTitle,
+        date: payload.date,
+        location: payload.location,
+        inspector: payload.inspector,
+        updatedAt: new Date().toISOString(),
+        createdAt: existing.createdAt || new Date().toISOString(),
+        stepsCount: state.steps.length,
+        remarksCount,
+        status: existing.status || 'draft'
+      };
+      if (idx >= 0) list[idx] = meta;
+      else list.unshift(meta);
+      saveReportsMeta(list);
+    }
+
+    function loadFromStorage() { return false; } // unused – kept for compat
+
+    // Update Step Counters and Badges
+    function updateCounters() {
+      const count = state.steps.length;
+      stepCountBadge.textContent = count === 1 ? "1 étape" : `${count} étapes`;
+      if (count === 0) {
+        emptyState.classList.remove("hidden");
+      } else {
+        emptyState.classList.add("hidden");
+      }
+    }
+
+    // Renumber all steps DOM elements
+    function renumberSteps() {
+      const stepCards = stepsContainer.querySelectorAll(".step-card");
+      stepCards.forEach((card, idx) => {
+        const num = idx + 1;
+        const badgeText = card.querySelector(".step-number-text");
+        if (badgeText) badgeText.textContent = `Étape ${num}`;
+      });
+      updateCounters();
+      saveToStorage();
+    }
+
+    // ================================================================
+    // IMAGE EDITOR MODULE
+    // Opens a modal that lets users draw on the image before saving it.
+    // ================================================================
+
+    const imgEditorOverlay = document.getElementById("imgEditorOverlay");
+    const editorCanvas    = document.getElementById("editorCanvas");
+    const editorCtx       = editorCanvas.getContext("2d");
+    const editorBtnCancel  = document.getElementById("editorBtnCancel");
+    const editorBtnConfirm = document.getElementById("editorBtnConfirm");
+    const editorBtnUndo    = document.getElementById("editorBtnUndo");
+    const editorSizeSlider = document.getElementById("editorSizeSlider");
+    const editorColorInput = document.getElementById("editorColorInput");
+    const editorCanvasArea = document.getElementById("editorCanvasArea");
+
+    // Editor State
+    let editorState = {
+      activeTool: "pen",
+      activeColor: "#FF3B30",
+      strokeSize: 5,
+      isDrawing: false,
+      startX: 0,
+      startY: 0,
+      snapshotStack: [],   // array of ImageData snapshots for undo
+      currentSnapshot: null, // snapshot before current stroke starts
+      pendingResolve: null,
+      pendingReject: null,
+      baseImage: null,     // HTMLImageElement of the source photo
+      scale: 1,
+      offsetX: 0,
+      offsetY: 0
+    };
+
+    // Tool button active state manager
+    document.querySelectorAll(".editor-tool-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".editor-tool-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        editorState.activeTool = btn.dataset.tool;
+        editorCanvas.style.cursor = editorState.activeTool === "text" ? "text" : "crosshair";
+      });
+    });
+
+    // Color swatch selection
+    document.querySelectorAll(".editor-color-swatch").forEach(swatch => {
+      swatch.addEventListener("click", () => {
+        document.querySelectorAll(".editor-color-swatch").forEach(s => s.classList.remove("active"));
+        swatch.classList.add("active");
+        editorState.activeColor = swatch.dataset.color;
+        editorColorInput.value = editorState.activeColor;
+      });
+    });
+
+    // Custom color input
+    editorColorInput.addEventListener("input", (e) => {
+      editorState.activeColor = e.target.value;
+      document.querySelectorAll(".editor-color-swatch").forEach(s => s.classList.remove("active"));
+    });
+
+    // Size slider
+    editorSizeSlider.addEventListener("input", (e) => {
+      editorState.strokeSize = parseInt(e.target.value);
+      // Update the gradient fill of the slider track
+      const pct = ((e.target.value - e.target.min) / (e.target.max - e.target.min)) * 100;
+      e.target.style.backgroundSize = `${pct}% 100%`;
+    });
+
+    // Helper: get pointer position relative to canvas in image coordinates
+    function getCanvasPos(e) {
+      const rect = editorCanvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      // Scale from display size to canvas native size
+      const scaleX = editorCanvas.width  / rect.width;
+      const scaleY = editorCanvas.height / rect.height;
+      return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top)  * scaleY
+      };
+    }
+
+    // Push a snapshot for undo
+    function pushSnapshot() {
+      editorState.snapshotStack.push(
+        editorCtx.getImageData(0, 0, editorCanvas.width, editorCanvas.height)
+      );
+    }
+
+    // Draw shapes on canvas
+    function drawShape(x0, y0, x1, y1, tool, color, size, preview) {
+      editorCtx.strokeStyle = color;
+      editorCtx.fillStyle   = color;
+      editorCtx.lineWidth   = size;
+      editorCtx.lineCap     = "round";
+      editorCtx.lineJoin    = "round";
+      editorCtx.globalCompositeOperation = "source-over";
+
+      if (preview && editorState.currentSnapshot) {
+        // Restore to state before this shape started (for live preview)
+        editorCtx.putImageData(editorState.currentSnapshot, 0, 0);
+      }
+
+      switch (tool) {
+        case "circle": {
+          const rx = Math.abs(x1 - x0) / 2;
+          const ry = Math.abs(y1 - y0) / 2;
+          const cx = Math.min(x0, x1) + rx;
+          const cy = Math.min(y0, y1) + ry;
+          editorCtx.beginPath();
+          editorCtx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+          editorCtx.stroke();
+          break;
+        }
+        case "rect": {
+          editorCtx.beginPath();
+          editorCtx.strokeRect(x0, y0, x1 - x0, y1 - y0);
+          break;
+        }
+        case "arrow": {
+          const dx = x1 - x0;
+          const dy = y1 - y0;
+          const angle = Math.atan2(dy, dx);
+          const headLen = Math.max(size * 4, 20);
+          editorCtx.beginPath();
+          editorCtx.moveTo(x0, y0);
+          editorCtx.lineTo(x1, y1);
+          editorCtx.stroke();
+          // Arrowhead
+          editorCtx.beginPath();
+          editorCtx.moveTo(x1, y1);
+          editorCtx.lineTo(
+            x1 - headLen * Math.cos(angle - Math.PI / 6),
+            y1 - headLen * Math.sin(angle - Math.PI / 6)
+          );
+          editorCtx.lineTo(
+            x1 - headLen * Math.cos(angle + Math.PI / 6),
+            y1 - headLen * Math.sin(angle + Math.PI / 6)
+          );
+          editorCtx.closePath();
+          editorCtx.fill();
+          break;
+        }
+        case "dot": {
+          editorCtx.beginPath();
+          editorCtx.arc(x0, y0, size * 2, 0, Math.PI * 2);
+          editorCtx.fill();
+          break;
+        }
+      }
+    }
+
+    // ---- Pointer Events ----
+    function onPointerDown(e) {
+      e.preventDefault();
+      const pos = getCanvasPos(e);
+      editorState.isDrawing = true;
+      editorState.startX = pos.x;
+      editorState.startY = pos.y;
+
+      if (editorState.activeTool === "text") {
+        // Text tool: prompt for text and draw it
+        const txt = prompt("Saisir le texte à ajouter:");
+        if (txt) {
+          pushSnapshot();
+          editorCtx.font = `bold ${editorState.strokeSize * 5 + 12}px Inter, sans-serif`;
+          editorCtx.fillStyle = editorState.activeColor;
+          editorCtx.globalCompositeOperation = "source-over";
+          // Shadow for legibility
+          editorCtx.shadowColor = "rgba(0,0,0,0.7)";
+          editorCtx.shadowBlur = 4;
+          editorCtx.fillText(txt, pos.x, pos.y);
+          editorCtx.shadowBlur = 0;
+        }
+        editorState.isDrawing = false;
+        return;
+      }
+
+      if (editorState.activeTool === "dot") {
+        pushSnapshot();
+        drawShape(pos.x, pos.y, pos.x, pos.y, "dot", editorState.activeColor, editorState.strokeSize, false);
+        editorState.isDrawing = false;
+        return;
+      }
+
+      if (editorState.activeTool === "pen") {
+        pushSnapshot();
+        editorCtx.beginPath();
+        editorCtx.moveTo(pos.x, pos.y);
+        return;
+      }
+
+      // For shapes (circle, rect, arrow) – save snapshot for live preview
+      editorState.currentSnapshot = editorCtx.getImageData(0, 0, editorCanvas.width, editorCanvas.height);
+    }
+
+    function onPointerMove(e) {
+      if (!editorState.isDrawing) return;
+      e.preventDefault();
+      const pos = getCanvasPos(e);
+
+      if (editorState.activeTool === "pen") {
+        editorCtx.strokeStyle = editorState.activeColor;
+        editorCtx.lineWidth   = editorState.strokeSize;
+        editorCtx.lineCap     = "round";
+        editorCtx.lineJoin    = "round";
+        editorCtx.globalCompositeOperation = "source-over";
+        editorCtx.lineTo(pos.x, pos.y);
+        editorCtx.stroke();
+        editorCtx.beginPath();
+        editorCtx.moveTo(pos.x, pos.y);
+        return;
+      }
+
+      // Live preview for shapes
+      drawShape(
+        editorState.startX, editorState.startY,
+        pos.x, pos.y,
+        editorState.activeTool,
+        editorState.activeColor,
+        editorState.strokeSize,
+        true
+      );
+    }
+
+    function onPointerUp(e) {
+      if (!editorState.isDrawing) return;
+      e.preventDefault();
+      const pos = getCanvasPos(e);
+
+      if (editorState.activeTool !== "pen") {
+        // Commit shape
+        pushSnapshot();
+        drawShape(
+          editorState.startX, editorState.startY,
+          pos.x, pos.y,
+          editorState.activeTool,
+          editorState.activeColor,
+          editorState.strokeSize,
+          false
+        );
+      } else {
+        // Close pen path
+        editorCtx.closePath();
+      }
+
+      editorState.isDrawing = false;
+      editorState.currentSnapshot = null;
+    }
+
+    editorCanvas.addEventListener("mousedown",  onPointerDown);
+    editorCanvas.addEventListener("mousemove",  onPointerMove);
+    editorCanvas.addEventListener("mouseup",    onPointerUp);
+    editorCanvas.addEventListener("mouseleave", onPointerUp);
+    editorCanvas.addEventListener("touchstart", onPointerDown, { passive: false });
+    editorCanvas.addEventListener("touchmove",  onPointerMove, { passive: false });
+    editorCanvas.addEventListener("touchend",   onPointerUp);
+
+    // Undo button
+    editorBtnUndo.addEventListener("click", () => {
+      if (editorState.snapshotStack.length > 0) {
+        const prev = editorState.snapshotStack.pop();
+        editorCtx.putImageData(prev, 0, 0);
+      }
+    });
+
+    // Cancel editor
+    editorBtnCancel.addEventListener("click", () => {
+      imgEditorOverlay.classList.remove("active");
+      if (editorState.pendingReject) {
+        editorState.pendingReject(new Error("cancelled"));
+        editorState.pendingResolve = null;
+        editorState.pendingReject  = null;
+      }
+    });
+
+    // Confirm: export canvas as JPEG and resolve
+    editorBtnConfirm.addEventListener("click", () => {
+      imgEditorOverlay.classList.remove("active");
+      if (editorState.pendingResolve) {
+        const dataUrl = editorCanvas.toDataURL("image/jpeg", 0.88);
+        editorState.pendingResolve({
+          dataUrl,
+          width: editorCanvas.width,
+          height: editorCanvas.height
+        });
+        editorState.pendingResolve = null;
+        editorState.pendingReject  = null;
+      }
+    });
+
+    // Main function: open the editor with a given File, return a Promise<{dataUrl, width, height}>
+    function openImageEditor(file) {
+      return new Promise((resolve, reject) => {
+        if (!file || !file.type.startsWith("image/")) {
+          return reject(new Error("Le fichier sélectionné n'est pas une image valide."));
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            // Resize source image to max 1600px
+            const maxDim = 1600;
+            let width  = img.width;
+            let height = img.height;
+            if (width > maxDim || height > maxDim) {
+              if (width > height) {
+                height = Math.round((height * maxDim) / width);
+                width  = maxDim;
+              } else {
+                width  = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+            }
+
+            // Set canvas to image size
+            editorCanvas.width  = width;
+            editorCanvas.height = height;
+            editorCtx.drawImage(img, 0, 0, width, height);
+
+            // Reset editor state
+            editorState.snapshotStack    = [];
+            editorState.currentSnapshot  = null;
+            editorState.isDrawing        = false;
+            editorState.pendingResolve   = resolve;
+            editorState.pendingReject    = reject;
+            editorState.baseImage        = img;
+            editorState.activeTool       = "pen";
+            editorState.activeColor      = "#FF3B30";
+            editorState.strokeSize       = 5;
+
+            // Reset tool UI
+            document.querySelectorAll(".editor-tool-btn").forEach(b => b.classList.remove("active"));
+            document.getElementById("toolPen").classList.add("active");
+            document.querySelectorAll(".editor-color-swatch").forEach(s => s.classList.remove("active"));
+            document.querySelector(".editor-color-swatch[data-color='#FF3B30']").classList.add("active");
+            editorSizeSlider.value = 5;
+            editorSizeSlider.style.backgroundSize = "10% 100%";
+            editorCanvas.style.cursor = "crosshair";
+
+            // Show modal
+            imgEditorOverlay.classList.add("active");
+          };
+          img.onerror = () => reject(new Error("Impossible de charger l'image."));
+          img.src = e.target.result;
+        };
+        reader.onerror = () => reject(new Error("Erreur de lecture du fichier."));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Legacy alias (used in file-input change handler below)
+    function processImageFile(file) {
+      return openImageEditor(file);
+    }
+
+    // Create a new step
+    function addStep(initialData = null) {
+      const stepId = initialData && initialData.id ? initialData.id : "step_" + Date.now() + "_" + Math.random().toString(36).substr(2, 6);
+      
+      // Migrate old single-image format to images[] array
+      let migratedImages = [];
+      if (initialData) {
+        if (Array.isArray(initialData.images) && initialData.images.length > 0) {
+          migratedImages = initialData.images;
+        } else if (initialData.image) {
+          migratedImages = [{ dataUrl: initialData.image, width: initialData.imageWidth, height: initialData.imageHeight }];
+        }
+      }
+
+      const stepObj = {
+        id: stepId,
+        title: initialData ? initialData.title || "" : "",
+        remarks: initialData ? initialData.remarks || "" : "",
+        images: migratedImages
+      };
+
+      if (!initialData) {
+        state.steps.push(stepObj);
+      }
+
+      const stepIndex = state.steps.findIndex(s => s.id === stepId);
+      const stepNumber = stepIndex >= 0 ? stepIndex + 1 : state.steps.length;
+
+      const card = document.createElement("div");
+      card.className = "step-card";
+      card.dataset.id = stepId;
+
+      card.innerHTML = `
+        <div class="step-card-header">
+          <div class="step-badge">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+            <span class="step-number-text">Étape ${stepNumber}</span>
+          </div>
+          <div class="step-actions">
+            <button type="button" class="btn-icon-action btn-move-up" title="Déplacer vers le haut">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 15l-6-6-6 6"/></svg>
+            </button>
+            <button type="button" class="btn-icon-action btn-move-down" title="Déplacer vers le bas">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <button type="button" class="btn-icon-action btn-delete-step" title="Supprimer cette étape">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 6h18m-2 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="step-card-body">
+          <!-- Step Title -->
+          <div class="form-group">
+            <label class="form-label">Titre de l'étape</label>
+            <input 
+              type="text" 
+              class="form-input step-title-input" 
+              placeholder="Ex: Vérification du tableau électrique principal"
+              value="${escapeHtml(stepObj.title)}"
+            >
+          </div>
+
+          <div class="step-card-grid-pc">
+            <!-- Photo Zone (multi-photo) -->
+            <div class="photo-zone">
+              <div class="photo-zone-label-row">
+                <label class="form-label">Photos d'inspection</label>
+                <span class="photo-count-badge photo-count-text">${stepObj.images.length > 0 ? stepObj.images.length + ' photo' + (stepObj.images.length > 1 ? 's' : '') : 'Aucune photo'}</span>
+              </div>
+
+              <!-- Hidden file input -->
+              <input type="file" class="hidden step-file-input" accept="image/*" capture="environment">
+
+              <!-- Thumbnail grid (hidden when empty) -->
+              <div class="photo-grid step-photo-grid" ${stepObj.images.length === 0 ? 'style="display:none"' : ''}>
+                ${stepObj.images.map((img, idx) => `
+                  <div class="photo-thumb-item" data-img-idx="${idx}">
+                    <img src="${img.dataUrl}" alt="Photo ${idx + 1}">
+                    <span class="photo-thumb-num">#${idx + 1}</span>
+                    <button type="button" class="photo-thumb-del" data-del-idx="${idx}" title="Supprimer">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+                `).join('')}
+              </div>
+
+              <!-- Add photo button (always visible) -->
+              <div class="photo-picker-button ${stepObj.images.length > 0 ? 'compact' : ''}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                  <circle cx="12" cy="13" r="4"></circle>
+                </svg>
+                <span class="photo-picker-title">${stepObj.images.length > 0 ? 'Ajouter une autre photo' : 'Prendre une photo ou importer'}</span>
+                ${stepObj.images.length === 0 ? '<span class="photo-picker-subtitle">Appareil photo mobile ou galerie</span>' : ''}
+              </div>
+            </div>
+
+            <!-- Step Remarks -->
+            <div class="form-group step-remarks-group">
+              <label class="form-label">Remarques / Observations</label>
+              <textarea 
+                rows="4" 
+                class="form-textarea step-remarks-input" 
+                placeholder="Saisissez vos observations, anomalies, conformités constatées..."
+              >${escapeHtml(stepObj.remarks)}</textarea>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Event Listeners for Step Elements
+      const titleInput   = card.querySelector(".step-title-input");
+      const remarksInput = card.querySelector(".step-remarks-input");
+      const fileInput    = card.querySelector(".step-file-input");
+      const photoPickerBtn = card.querySelector(".photo-picker-button");
+      const photoGrid    = card.querySelector(".step-photo-grid");
+      const photoCountEl = card.querySelector(".photo-count-text");
+      const btnDelete    = card.querySelector(".btn-delete-step");
+      const btnMoveUp    = card.querySelector(".btn-move-up");
+      const btnMoveDown  = card.querySelector(".btn-move-down");
+
+      // ---- Helper: rebuild the grid DOM from item.images[] ----
+      function rebuildPhotoGrid(item) {
+        photoGrid.innerHTML = item.images.map((img, idx) => `
+          <div class="photo-thumb-item" data-img-idx="${idx}">
+            <img src="${img.dataUrl}" alt="Photo ${idx + 1}">
+            <span class="photo-thumb-num">#${idx + 1}</span>
+            <button type="button" class="photo-thumb-del" data-del-idx="${idx}" title="Supprimer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        `).join('');
+
+        // Wire delete buttons
+        photoGrid.querySelectorAll(".photo-thumb-del").forEach(btn => {
+          btn.addEventListener("click", (ev) => {
+            ev.stopPropagation();
+            const delIdx = parseInt(btn.dataset.delIdx);
+            item.images.splice(delIdx, 1);
+            saveToStorage();
+            rebuildPhotoGrid(item);
+            updatePickerBtn(item);
+            showToast("Photo supprimée");
+          });
+        });
+
+        // Show/hide grid
+        photoGrid.style.display = item.images.length > 0 ? "grid" : "none";
+        // Update count badge
+        const n = item.images.length;
+        photoCountEl.textContent = n > 0 ? n + " photo" + (n > 1 ? "s" : "") : "Aucune photo";
+      }
+
+      function updatePickerBtn(item) {
+        const hasPhotos = item.images.length > 0;
+        photoPickerBtn.classList.toggle("compact", hasPhotos);
+        const titleSpan = photoPickerBtn.querySelector(".photo-picker-title");
+        if (titleSpan) titleSpan.textContent = hasPhotos ? "Ajouter une autre photo" : "Prendre une photo ou importer";
+        let subSpan = photoPickerBtn.querySelector(".photo-picker-subtitle");
+        if (!hasPhotos && !subSpan) {
+          subSpan = document.createElement("span");
+          subSpan.className = "photo-picker-subtitle";
+          subSpan.textContent = "Appareil photo mobile ou galerie";
+          photoPickerBtn.appendChild(subSpan);
+        } else if (hasPhotos && subSpan) {
+          subSpan.remove();
+        }
+      }
+
+      // Title & Remark input events
+      titleInput.addEventListener("input", (e) => {
+        const item = state.steps.find(s => s.id === stepId);
+        if (item) item.title = e.target.value;
+        saveToStorage();
+      });
+
+      remarksInput.addEventListener("input", (e) => {
+        const item = state.steps.find(s => s.id === stepId);
+        if (item) item.remarks = e.target.value;
+        saveToStorage();
+      });
+
+      // Photo upload trigger
+      photoPickerBtn.addEventListener("click", () => fileInput.click());
+
+      // File input change — opens editor then APPENDS to images[]
+      fileInput.addEventListener("change", async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        showToast("Éditeur d'image ouvert...");
+        try {
+          const processed = await processImageFile(file);
+          const item = state.steps.find(s => s.id === stepId);
+          if (item) {
+            item.images.push({ dataUrl: processed.dataUrl, width: processed.width, height: processed.height });
+            saveToStorage();
+            rebuildPhotoGrid(item);
+            updatePickerBtn(item);
+          }
+          showToast("✅ Photo annotée ajoutée !");
+        } catch (err) {
+          if (err.message === "cancelled") return;
+          console.error(err);
+          alert("Erreur lors du traitement de l'image : " + err.message);
+        } finally {
+          fileInput.value = "";
+        }
+      });
+
+      // Wire existing delete buttons (for images loaded from storage)
+      {
+        const item = state.steps.find(s => s.id === stepId);
+        if (item) {
+          rebuildPhotoGrid(item);
+        }
+      }
+
+      // Delete step
+      btnDelete.addEventListener("click", () => {
+        const idx = state.steps.findIndex(s => s.id === stepId);
+        if (idx !== -1) {
+          state.steps.splice(idx, 1);
+          card.remove();
+          renumberSteps();
+          showToast("Étape supprimée");
+        }
+      });
+
+      // Move Up
+      btnMoveUp.addEventListener("click", () => {
+        const idx = state.steps.findIndex(s => s.id === stepId);
+        if (idx > 0) {
+          const temp = state.steps[idx];
+          state.steps[idx] = state.steps[idx - 1];
+          state.steps[idx - 1] = temp;
+          renderSteps();
+          showToast("Étape déplacée");
+        }
+      });
+
+      // Move Down
+      btnMoveDown.addEventListener("click", () => {
+        const idx = state.steps.findIndex(s => s.id === stepId);
+        if (idx < state.steps.length - 1 && idx !== -1) {
+          const temp = state.steps[idx];
+          state.steps[idx] = state.steps[idx + 1];
+          state.steps[idx + 1] = temp;
+          renderSteps();
+          showToast("Étape déplacée");
+        }
+      });
+
+      stepsContainer.appendChild(card);
+      updateCounters();
+      saveToStorage();
+
+      return card;
+    }
+
+    // Re-render all steps from state
+    function renderSteps() {
+      stepsContainer.innerHTML = "";
+      state.steps.forEach(step => {
+        addStep(step);
+      });
+      updateCounters();
+      saveToStorage();
+    }
+
+    // Helper: Escape HTML strings for safety
+    function escapeHtml(text) {
+      if (!text) return "";
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // Format Date into French readable string (e.g. 23 septembre 2026)
+    function formatDateFrench(dateString) {
+      if (!dateString) return "";
+      try {
+        const [year, month, day] = dateString.split("-");
+        const d = new Date(year, month - 1, day);
+        return d.toLocaleDateString("fr-FR", {
+          day: "numeric",
+          month: "long",
+          year: "numeric"
+        });
+      } catch (e) {
+        return dateString;
+      }
+    }
+
+    // Sanitize filename
+    function sanitizeFilename(title, dateStr) {
+      const cleanTitle = (title || "Rapport_d_inspection")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // Remove accents
+        .replace(/[^a-zA-Z0-9]/g, "_")  // Replace special chars and spaces with underscore
+        .replace(/_+/g, "_")             // Collapse consecutive underscores
+        .replace(/^_|_$/g, "");          // Trim leading/trailing underscores
+
+      const datePart = dateStr ? `_${dateStr}` : "";
+      return `${cleanTitle}${datePart}.pdf`;
+    }
+
+    // Synchronize DOM inputs into state.steps before PDF generation
+    function syncStateFromDOM() {
+      const stepCards = stepsContainer.querySelectorAll(".step-card");
+      stepCards.forEach((card) => {
+        const id = card.dataset.id;
+        const step = state.steps.find(s => s.id === id);
+        if (step) {
+          const titleInput = card.querySelector(".step-title-input");
+          const remarksInput = card.querySelector(".step-remarks-input");
+          if (titleInput) step.title = titleInput.value;
+          if (remarksInput) step.remarks = remarksInput.value;
+        }
+      });
+    }
+
+    // GENERATE AND DOWNLOAD PDF VIA jsPDF
+    async function generatePdf() {
+      if (typeof window.jspdf === "undefined" || !window.jspdf.jsPDF) {
+        alert("La bibliothèque jsPDF n'a pas pu être chargée. Vérifiez votre connexion internet pour le chargement initial.");
+        return;
+      }
+
+      // Synchronize latest values from DOM
+      syncStateFromDOM();
+      saveToStorage();
+
+      loadingOverlay.classList.add("active");
+
+      // Allow DOM to update before heavy computation
+      await new Promise(r => setTimeout(r, 60));
+
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({
+          orientation: "portrait",
+          unit: "mm",
+          format: "a4",
+          compress: true
+        });
+
+        const pageWidth = 210;
+        const pageHeight = 297;
+        const marginX = 20;
+        const marginTop = 22;
+        const marginBottom = 22;
+        const contentWidth = pageWidth - (marginX * 2); // 170mm
+
+        const rawTitle = reportTitleEl.value.trim();
+        const reportTitle = rawTitle || "Rapport d'inspection";
+        const inspectionDate = reportDateEl.value || new Date().toISOString().split("T")[0];
+        const formattedDate = formatDateFrench(inspectionDate);
+        const inspectorName = inspectorNameEl.value.trim() || "Non spécifié";
+        const locationName = reportLocationEl.value.trim() || "Non spécifié";
+
+        // ==========================================
+        // PAGE 1: EXECUTIVE COVER PAGE (Page de garde)
+        // Inspired by the geometric corporate blue design
+        // ==========================================
+        
+        // Background base
+        doc.setFillColor(255, 255, 255);
+        doc.rect(0, 0, pageWidth, pageHeight, "F");
+
+        // Geometric Top Banners & Diagonal Accents
+        // Dark Navy polygon top-right
+        doc.setFillColor(13, 35, 58); // #0d233a
+        doc.triangle(120, 0, 210, 0, 210, 65, "F");
+
+        // Medium Blue polygon top-right
+        doc.setFillColor(30, 91, 168); // #1e5ba8
+        doc.triangle(155, 0, 210, 0, 210, 40, "F");
+
+        // Sky Blue diagonal accent
+        doc.setFillColor(96, 165, 250); // #60a5fa
+        doc.triangle(180, 0, 210, 0, 210, 22, "F");
+
+        // Thin Navy diagonal stripe top-center
+        doc.setDrawColor(30, 91, 168);
+        doc.setLineWidth(1.5);
+        doc.line(110, 0, 210, 75);
+
+        // Header Branding (Left side)
+        // Circular Chevron Icon (matching attached branding)
+        doc.setDrawColor(13, 35, 58);
+        doc.setFillColor(248, 250, 252);
+        doc.setLineWidth(1.2);
+        doc.circle(marginX + 6, 26, 6, "FD");
+        
+        doc.setLineWidth(1.2);
+        doc.setDrawColor(13, 35, 58);
+        // Double chevron inside circle
+        doc.line(marginX + 3.5, 24, marginX + 6, 26.5);
+        doc.line(marginX + 6, 26.5, marginX + 8.5, 24);
+        doc.line(marginX + 3.5, 26.5, marginX + 6, 29);
+        doc.line(marginX + 6, 29, marginX + 8.5, 26.5);
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.setTextColor(13, 35, 58);
+        doc.text("RAPPORT TECHNIQUE", marginX + 16, 25);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8.5);
+        doc.setTextColor(100, 116, 139);
+        doc.text("INSPECTION & CONTRÔLE SUR LE TERRAIN", marginX + 16, 29.5);
+
+        // Main Title Block on Cover Page
+        let coverY = 85;
+
+        // Big year / badge
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(28);
+        doc.setTextColor(30, 91, 168);
+        doc.text(new Date().getFullYear().toString(), marginX, coverY);
+        coverY += 12;
+
+        // Giant Report Title
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(24);
+        doc.setTextColor(13, 35, 58);
+        const splitCoverTitle = doc.splitTextToSize(reportTitle.toUpperCase(), contentWidth - 10);
+        doc.text(splitCoverTitle, marginX, coverY);
+        coverY += (splitCoverTitle.length * 9.5) + 3;
+
+        // Accent divider bar under title
+        doc.setFillColor(37, 99, 235);
+        doc.rect(marginX, coverY, 32, 2.5, "F");
+        coverY += 16;
+
+        // Metadata Card on Cover Page
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(0.6);
+        const metaBoxHeight = 52;
+        doc.roundedRect(marginX, coverY, contentWidth, metaBoxHeight, 3, 3, "FD");
+
+        // Left accent strip in meta box
+        doc.setFillColor(13, 35, 58);
+        doc.roundedRect(marginX, coverY, 4, metaBoxHeight, 2, 2, "F");
+
+        // Meta entries inside the box
+        let metaY = coverY + 11;
+        const leftColX = marginX + 12;
+        const rightColX = marginX + (contentWidth / 2) + 4;
+
+        // Date
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8.5);
+        doc.setTextColor(100, 116, 139);
+        doc.text("DATE D'INSPECTION", leftColX, metaY);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10.5);
+        doc.setTextColor(15, 23, 42);
+        doc.text(formattedDate, leftColX, metaY + 5.5);
+
+        // Steps count
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8.5);
+        doc.setTextColor(100, 116, 139);
+        doc.text("NOMBRE D'ÉTAPES", rightColX, metaY);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10.5);
+        doc.setTextColor(15, 23, 42);
+        doc.text(`${state.steps.length} étape${state.steps.length > 1 ? 's' : ''} documentée${state.steps.length > 1 ? 's' : ''}`, rightColX, metaY + 5.5);
+
+        metaY += 17;
+
+        // Inspector
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8.5);
+        doc.setTextColor(100, 116, 139);
+        doc.text("RÉALISÉ PAR", leftColX, metaY);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10.5);
+        doc.setTextColor(15, 23, 42);
+        doc.text(inspectorName, leftColX, metaY + 5.5);
+
+        // Location
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8.5);
+        doc.setTextColor(100, 116, 139);
+        doc.text("LIEU / CHANTIER", rightColX, metaY);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10.5);
+        doc.setTextColor(15, 23, 42);
+        doc.text(locationName, rightColX, metaY + 5.5);
+
+        // Bottom Geometric Polygon Accents on Cover (matching the reference style)
+        doc.setFillColor(13, 35, 58); // Dark Navy bottom-left
+        doc.triangle(0, pageHeight - 65, 0, pageHeight, 100, pageHeight, "F");
+
+        doc.setFillColor(30, 91, 168); // Medium Blue bottom-left
+        doc.triangle(0, pageHeight - 40, 0, pageHeight, 60, pageHeight, "F");
+
+        doc.setFillColor(96, 165, 250); // Sky Blue bottom-left
+        doc.triangle(0, pageHeight - 20, 0, pageHeight, 30, pageHeight, "F");
+
+        // Thin Navy diagonal stripe bottom-left
+        doc.setDrawColor(30, 91, 168);
+        doc.setLineWidth(1.5);
+        doc.line(0, pageHeight - 75, 115, pageHeight);
+
+        // Bottom right document stamp
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(148, 163, 184);
+        doc.text("Rapport autonome généré sur le terrain", pageWidth - marginX, pageHeight - 12, { align: "right" });
+
+
+        // ==========================================
+        // PAGES 2+: REPORT STEPS WITH AUTO-PAGINATION
+        // ==========================================
+        let currentY = marginTop;
+
+        // Function to draw running header on content pages
+        function drawRunningHeader() {
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8);
+          doc.setTextColor(100, 116, 139);
+          doc.text(reportTitle.toUpperCase(), marginX, 12);
+
+          doc.setFont("helvetica", "normal");
+          doc.text(formattedDate, pageWidth - marginX, 12, { align: "right" });
+
+          doc.setDrawColor(226, 232, 240);
+          doc.setLineWidth(0.4);
+          doc.line(marginX, 14.5, pageWidth - marginX, 14.5);
+        }
+
+        // Only start content pages if steps exist or add an empty note
+        doc.addPage();
+        drawRunningHeader();
+        currentY = marginTop;
+
+        if (state.steps.length === 0) {
+          // If no steps were entered, display a clean note
+          doc.setFillColor(248, 250, 252);
+          doc.setDrawColor(226, 232, 240);
+          doc.roundedRect(marginX, currentY, contentWidth, 25, 2, 2, "FD");
+
+          doc.setFont("helvetica", "italic");
+          doc.setFontSize(10);
+          doc.setTextColor(100, 116, 139);
+          doc.text("Aucune étape n'a été ajoutée à ce rapport.", marginX + 10, currentY + 14);
+          currentY += 35;
+        }
+
+        // Loop through each step in user order
+        for (let i = 0; i < state.steps.length; i++) {
+          const step = state.steps[i];
+          const stepNum = i + 1;
+          const stepTitle = step.title.trim() || `Étape ${stepNum}`;
+
+          // Normalize: support both old single-image and new images[] format
+          const stepImages = Array.isArray(step.images) && step.images.length > 0
+            ? step.images
+            : (step.image ? [{ dataUrl: step.image, width: step.imageWidth, height: step.imageHeight }] : []);
+
+          const hasPhotos  = stepImages.length > 0;
+          const hasRemarks = Boolean(step.remarks && step.remarks.trim());
+
+          // Estimate required height for step header
+          const headerHeight = 12;
+
+          // Calculate wrapped remarks height
+          let splitRemarks = [];
+          let remarksBoxHeight = 0;
+          if (hasRemarks) {
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(9.5);
+            splitRemarks = doc.splitTextToSize(step.remarks.trim(), contentWidth - 12);
+            remarksBoxHeight = (splitRemarks.length * 5) + 12;
+          }
+
+          // Check if the step header fits on current page
+          const minimumBlockHeight = headerHeight + (hasPhotos ? 40 : 20);
+          if (currentY + minimumBlockHeight > (pageHeight - marginBottom)) {
+            doc.addPage();
+            drawRunningHeader();
+            currentY = marginTop;
+          }
+
+          // --- 1. DRAW STEP HEADER ---
+          const badgeWidth = 24;
+          const badgeHeight = 7;
+          doc.setFillColor(13, 35, 58);
+          doc.roundedRect(marginX, currentY, badgeWidth, badgeHeight, 1.5, 1.5, "F");
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8.5);
+          doc.setTextColor(255, 255, 255);
+          doc.text(`ÉTAPE ${stepNum}`, marginX + (badgeWidth / 2), currentY + 4.8, { align: "center" });
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(11);
+          doc.setTextColor(15, 23, 42);
+          const titleX = marginX + badgeWidth + 4;
+          const maxTitleWidth = contentWidth - badgeWidth - 4;
+          const splitStepTitle = doc.splitTextToSize(stepTitle, maxTitleWidth);
+          doc.text(splitStepTitle, titleX, currentY + 5.2);
+
+          const stepTitleHeight = Math.max(badgeHeight, splitStepTitle.length * 5.5);
+          currentY += stepTitleHeight + 5;
+
+          // --- 2. DRAW ALL PHOTOS (loop) ---
+          for (let p = 0; p < stepImages.length; p++) {
+            const imgObj = stepImages[p];
+            const maxPhotoWidth  = contentWidth;
+            const maxPhotoHeight = 90;
+            const imgAspect = (imgObj.width && imgObj.height)
+              ? (imgObj.width / imgObj.height)
+              : (4 / 3);
+
+            let photoWidth  = maxPhotoWidth;
+            let photoHeight = photoWidth / imgAspect;
+            if (photoHeight > maxPhotoHeight) {
+              photoHeight = maxPhotoHeight;
+              photoWidth  = photoHeight * imgAspect;
+            }
+
+            // Page break if photo doesn't fit
+            if (currentY + photoHeight > (pageHeight - marginBottom)) {
+              doc.addPage();
+              drawRunningHeader();
+              currentY = marginTop;
+            }
+
+            const photoX = marginX + ((contentWidth - photoWidth) / 2);
+
+            // Photo index label (when multiple)
+            if (stepImages.length > 1) {
+              doc.setFont("helvetica", "bold");
+              doc.setFontSize(7.5);
+              doc.setTextColor(100, 116, 139);
+              doc.text(`PHOTO ${p + 1} / ${stepImages.length}`, marginX, currentY - 1.5);
+              currentY += 3;
+            }
+
+            doc.setDrawColor(203, 213, 225);
+            doc.setLineWidth(0.4);
+            doc.setFillColor(241, 245, 249);
+            doc.roundedRect(photoX, currentY, photoWidth, photoHeight, 1.5, 1.5, "FD");
+
+            try {
+              doc.addImage(imgObj.dataUrl, "JPEG", photoX, currentY, photoWidth, photoHeight, undefined, "FAST");
+            } catch (imgErr) {
+              console.error("Erreur insertion image PDF", imgErr);
+              doc.setTextColor(220, 38, 38);
+              doc.setFont("helvetica", "italic");
+              doc.text("[Image non disponible]", photoX + 5, currentY + 10);
+            }
+
+            currentY += photoHeight + 5;
+          }
+
+          // --- 3. DRAW REMARKS (IF PRESENT) ---
+          if (hasRemarks) {
+            // If the whole remarks box cannot fit, check if we should break page or split
+            if (currentY + remarksBoxHeight > (pageHeight - marginBottom)) {
+              // If there's less than 25mm left, push entire remarks box to next page
+              if ((pageHeight - marginBottom) - currentY < 25) {
+                doc.addPage();
+                drawRunningHeader();
+                currentY = marginTop;
+              }
+            }
+
+            // Draw clean remarks box
+            const boxStartY = currentY;
+            doc.setFillColor(248, 250, 252);
+            doc.setDrawColor(226, 232, 240);
+            doc.setLineWidth(0.4);
+
+            // We calculate how many lines fit on this page
+            const lineHeight = 5;
+            const availableSpace = (pageHeight - marginBottom) - currentY - 14;
+            const linesOnThisPage = Math.max(1, Math.floor(availableSpace / lineHeight));
+
+            if (splitRemarks.length <= linesOnThisPage) {
+              // Fits entirely
+              doc.roundedRect(marginX, boxStartY, contentWidth, remarksBoxHeight, 2, 2, "FD");
+
+              // Left vertical accent stripe
+              doc.setFillColor(30, 91, 168);
+              doc.rect(marginX, boxStartY, 2.5, remarksBoxHeight, "F");
+
+              // Label
+              doc.setFont("helvetica", "bold");
+              doc.setFontSize(8);
+              doc.setTextColor(100, 116, 139);
+              doc.text("REMARQUES & OBSERVATIONS", marginX + 6, boxStartY + 5.5);
+
+              // Text
+              doc.setFont("helvetica", "normal");
+              doc.setFontSize(9.5);
+              doc.setTextColor(30, 41, 59);
+              doc.text(splitRemarks, marginX + 6, boxStartY + 11);
+
+              currentY += remarksBoxHeight + 8;
+            } else {
+              // Multi-page text split
+              const page1Lines = splitRemarks.slice(0, linesOnThisPage);
+              const remainingLines = splitRemarks.slice(linesOnThisPage);
+              const page1Height = (page1Lines.length * lineHeight) + 12;
+
+              doc.roundedRect(marginX, boxStartY, contentWidth, page1Height, 2, 2, "FD");
+              doc.setFillColor(30, 91, 168);
+              doc.rect(marginX, boxStartY, 2.5, page1Height, "F");
+
+              doc.setFont("helvetica", "bold");
+              doc.setFontSize(8);
+              doc.setTextColor(100, 116, 139);
+              doc.text("REMARQUES & OBSERVATIONS", marginX + 6, boxStartY + 5.5);
+
+              doc.setFont("helvetica", "normal");
+              doc.setFontSize(9.5);
+              doc.setTextColor(30, 41, 59);
+              doc.text(page1Lines, marginX + 6, boxStartY + 11);
+
+              // Next page for remaining lines
+              doc.addPage();
+              drawRunningHeader();
+              currentY = marginTop;
+
+              const page2Height = (remainingLines.length * lineHeight) + 12;
+              doc.roundedRect(marginX, currentY, contentWidth, page2Height, 2, 2, "FD");
+              doc.setFillColor(30, 91, 168);
+              doc.rect(marginX, currentY, 2.5, page2Height, "F");
+
+              doc.setFont("helvetica", "bold");
+              doc.setFontSize(8);
+              doc.setTextColor(100, 116, 139);
+              doc.text("REMARQUES & OBSERVATIONS (SUITE)", marginX + 6, currentY + 5.5);
+
+              doc.setFont("helvetica", "normal");
+              doc.setFontSize(9.5);
+              doc.setTextColor(30, 41, 59);
+              doc.text(remainingLines, marginX + 6, currentY + 11);
+
+              currentY += page2Height + 8;
+            }
+          } else {
+            // Extra spacing when no remark
+            currentY += 4;
+          }
+
+          // Subtle divider line between steps (if not at page bottom and not last step)
+          if (i < state.steps.length - 1) {
+            if (currentY < pageHeight - marginBottom - 15) {
+              doc.setDrawColor(241, 245, 249);
+              doc.setLineWidth(0.6);
+              doc.line(marginX, currentY, pageWidth - marginX, currentY);
+              currentY += 6;
+            }
+          }
+        }
+
+        // ==========================================
+        // FOOTERS & PAGE NUMBERS ON ALL CONTENT PAGES
+        // ==========================================
+        const totalPages = doc.getNumberOfPages();
+        for (let p = 2; p <= totalPages; p++) {
+          doc.setPage(p);
+
+          // Thin footer line
+          doc.setDrawColor(226, 232, 240);
+          doc.setLineWidth(0.4);
+          doc.line(marginX, pageHeight - 12, pageWidth - marginX, pageHeight - 12);
+
+          // Footer Text
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(8);
+          doc.setTextColor(148, 163, 184);
+          doc.text("Rapport d'inspection technique", marginX, pageHeight - 7.5);
+
+          // Page Number
+          doc.text(`Page ${p} sur ${totalPages}`, pageWidth - marginX, pageHeight - 7.5, { align: "right" });
+        }
+
+        // Automatically name file from title and date
+        const finalFilename = sanitizeFilename(rawTitle, inspectionDate);
+        doc.save(finalFilename);
+
+        showToast("Rapport téléchargé avec succès !");
+      } catch (err) {
+        console.error("Erreur lors de la génération du PDF", err);
+        alert("Une erreur est survenue lors de la création du PDF : " + err.message);
+      } finally {
+        loadingOverlay.classList.remove("active");
+      }
+    }
+
+    // ================================================================
+    // SCREEN NAVIGATION
+    // ================================================================
+    function showListScreen() {
+      reportsScreen.classList.remove('hidden');
+      editorScreen.classList.add('hidden');
+      editorBottomBar.classList.add('hidden');
+      btnBack.classList.add('hidden');
+      document.getElementById('headerSubtitle').textContent = t().myReports;
+      state.currentReportId = null;
+      renderReportsList();
+    }
+
+    function showEditorScreen(reportId) {
+      reportsScreen.classList.add('hidden');
+      editorScreen.classList.remove('hidden');
+      editorBottomBar.classList.remove('hidden');
+      btnBack.classList.remove('hidden');
+      document.getElementById('headerSubtitle').textContent = t().subtitleEditor;
+
+      // Load report data into state
+      const data = getReportData(reportId);
+      state.currentReportId = reportId;
+
+      // Reset form
+      reportTitleEl.value        = data ? (data.title || '') : '';
+      reportDateEl.value         = data ? (data.date || new Date().toISOString().split('T')[0]) : new Date().toISOString().split('T')[0];
+      inspectorNameEl.value      = data ? (data.inspector || '') : '';
+      reportLocationEl.value     = data ? (data.location || '') : '';
+      reportLocationDescEl.value = data ? (data.locationDesc || '') : '';
+      state.steps = [];
+
+      // Render steps
+      if (data && Array.isArray(data.steps) && data.steps.length > 0) {
+        state.steps = data.steps;
+        renderSteps();
+      } else {
+        stepsContainer.innerHTML = '';
+        updateCounters();
+        addStep(); // start with 1 empty step
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ================================================================
+    // REPORTS LIST RENDERER
+    // ================================================================
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      try {
+        return new Intl.DateTimeFormat(currentLang === 'ar' ? 'ar-SA' : currentLang, { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(dateStr + 'T00:00:00'));
+      } catch { return dateStr; }
+    }
+
+    // Active filter
+    let activeFilter = 'all';
+    let searchQuery  = '';
+
+    // Status config
+    const STATUS_CYCLE = ['draft', 'done', 'exported'];
+    function getStatusInfo(st) {
+      const tr = t();
+      const labels = {
+        draft:    { emoji: '🟡', label: tr.statusDraft || 'Brouillon' },
+        done:     { emoji: '🟢', label: tr.statusDone || 'Terminé' },
+        exported: { emoji: '🔵', label: tr.statusExported || 'Exporté' }
+      };
+      return labels[st] || labels.draft;
+    }
+
+    function formatDatetime(isoStr) {
+      if (!isoStr) return '';
+      try {
+        const d = new Date(isoStr);
+        return new Intl.DateTimeFormat(currentLang === 'ar' ? 'ar-SA' : currentLang, {
+          day: '2-digit', month: 'short', year: 'numeric',
+          hour: '2-digit', minute: '2-digit'
+        }).format(d);
+      } catch { return ''; }
+    }
+
+    function cycleStatus(id) {
+      const list = getAllReportsMeta();
+      const idx  = list.findIndex(r => r.id === id);
+      if (idx < 0) return;
+      const cur  = list[idx].status || 'draft';
+      const next = STATUS_CYCLE[(STATUS_CYCLE.indexOf(cur) + 1) % STATUS_CYCLE.length];
+      list[idx].status = next;
+      saveReportsMeta(list);
+      renderReportsList();
+    }
+
+    function renderReportsList() {
+      const container = document.getElementById('reportsListContainer');
+      const emptyEl   = document.getElementById('reportsEmptyState');
+      const countEl   = document.getElementById('reportsCountPill');
+      const allList   = getAllReportsMeta();
+      const tr        = t();
+
+      // Apply filter + search
+      const filtered = allList.filter(meta => {
+        const matchFilter = activeFilter === 'all' || (meta.status || 'draft') === activeFilter;
+        const q = searchQuery.toLowerCase();
+        const matchSearch = !q ||
+          (meta.title  || '').toLowerCase().includes(q) ||
+          (meta.location || '').toLowerCase().includes(q) ||
+          (meta.inspector || '').toLowerCase().includes(q);
+        return matchFilter && matchSearch;
+      });
+
+      countEl.textContent = allList.length;
+      container.innerHTML = '';
+
+      if (allList.length === 0) {
+        emptyEl.classList.remove('hidden');
+        return;
+      }
+      emptyEl.classList.add('hidden');
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div style="grid-column:1 / -1;text-align:center;padding:3rem 1rem;color:var(--text-muted);font-size:0.9rem;">${tr.noSearchResults ? tr.noSearchResults(searchQuery) : `Aucun résultat pour "${escapeHtml(searchQuery)}"`}</div>`;
+        return;
+      }
+
+      filtered.forEach(meta => {
+        const card = document.createElement('div');
+        card.className = 'report-list-card';
+        const st = meta.status || 'draft';
+        const stInfo = getStatusInfo(st);
+
+        // Left accent color by status
+        const accentColors = { draft: '#ca8a04', done: '#16a34a', exported: '#2563eb' };
+        card.style.setProperty('--accent', accentColors[st] || '#1e5ba8');
+
+        const remarksChip = (meta.remarksCount > 0)
+          ? `<span class="chip-remarks">&#x26A0; ${tr.remarksLabel ? tr.remarksLabel(meta.remarksCount) : `${meta.remarksCount} remarque${meta.remarksCount > 1 ? 's' : ''}`}</span>`
+          : '';
+
+        const locationHtml = meta.location
+          ? `<div class="report-card-location">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              <span>${escapeHtml(meta.location)}</span>
+            </div>`
+          : '';
+
+        card.innerHTML = `
+          <div class="report-card-top">
+            <div class="report-card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+            </div>
+            <div class="report-card-title-wrap">
+              <div class="report-card-title">${escapeHtml(meta.title || tr.noTitle)}</div>
+              <div class="report-card-badge-wrap">
+                <button class="status-badge ${st}" data-action="status" data-id="${meta.id}" title="Cliquer pour changer le statut">
+                  <span class="status-dot"></span>${stInfo.emoji} ${stInfo.label}
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="report-card-body-info">
+            <div class="report-card-meta">
+              ${meta.date ? `<span>${formatDate(meta.date)}</span>` : ''}
+              ${meta.stepsCount > 0 ? `<span class="report-card-meta-dot"></span><span>${tr.stepsCount(meta.stepsCount)}</span>` : ''}
+              ${remarksChip}
+            </div>
+            ${locationHtml}
+            ${meta.locationDesc ? `<div class="report-card-loc-desc" title="${escapeHtml(meta.locationDesc)}">💬 ${escapeHtml(meta.locationDesc)}</div>` : ''}
+          </div>
+          <div class="report-card-footer">
+            <div class="report-card-time">${tr.modifiedAt || 'Modifié'} ${formatDatetime(meta.updatedAt)}</div>
+            <div class="report-card-actions">
+              <button class="btn-report-action dup" title="${tr.duplicateReport}" data-action="dup" data-id="${meta.id}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              </button>
+              <button class="btn-report-action pdf" title="📄 ${tr.downloadPdf}" data-action="pdf" data-id="${meta.id}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </button>
+              <button class="btn-report-action danger" title="${tr.deleteReport}" data-action="del" data-id="${meta.id}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+              </button>
+            </div>
+          </div>
+        `;
+
+        card.addEventListener('click', (e) => {
+          if (e.target.closest('[data-action]')) return;
+          showEditorScreen(meta.id);
+        });
+
+        card.querySelectorAll('[data-action]').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const action = btn.dataset.action;
+            const id     = btn.dataset.id;
+            if (action === 'del')    deleteReport(id);
+            if (action === 'dup')    duplicateReport(id);
+            if (action === 'pdf')    downloadReportPdf(id);
+            if (action === 'status') cycleStatus(id);
+          });
+        });
+
+        container.appendChild(card);
+      });
+    }
+
+    // ================================================================
+    // REPORT CRUD
+    // ================================================================
+    function autoTitle() {
+      const now = new Date();
+      return 'Rapport du ' + now.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+    }
+
+    function createNewReport() {
+      const id  = generateId();
+      const now = new Date().toISOString();
+      const defaultTitle = autoTitle();
+      const meta = {
+        id, title: defaultTitle,
+        date: now.split('T')[0],
+        location: '', inspector: '',
+        createdAt: now, updatedAt: now,
+        stepsCount: 0, remarksCount: 0, status: 'draft'
+      };
+      const list = getAllReportsMeta();
+      list.unshift(meta);
+      saveReportsMeta(list);
+      saveReportData(id, { id, title: defaultTitle, date: meta.date, inspector: '', location: '', steps: [] });
+      showEditorScreen(id);
+    }
+
+    // Custom delete modal logic
+    let _pendingDeleteId = null;
+    const confirmModal     = document.getElementById('confirmDeleteModal');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    const confirmCancelBtn = document.getElementById('confirmCancelBtn');
+
+    function openDeleteModal(id) {
+      _pendingDeleteId = id;
+      const meta = getAllReportsMeta().find(r => r.id === id);
+      const title = meta ? (meta.title || t().noTitle) : '';
+      document.getElementById('confirmModalTitle').textContent = 'Supprimer ce rapport ?';
+      document.getElementById('confirmModalDesc').textContent =
+        `« ${title} » sera définitivement supprimé avec toutes ses étapes et photos.`;
+      confirmModal.classList.add('active');
+    }
+
+    function closeDeleteModal() {
+      confirmModal.classList.remove('active');
+      _pendingDeleteId = null;
+    }
+
+    confirmDeleteBtn.addEventListener('click', () => {
+      if (!_pendingDeleteId) return;
+      const id = _pendingDeleteId;
+      closeDeleteModal();
+      const list = getAllReportsMeta().filter(r => r.id !== id);
+      saveReportsMeta(list);
+      deleteReportData(id);
+      renderReportsList();
+      showToast(t().reportDeleted);
+    });
+    confirmCancelBtn.addEventListener('click', closeDeleteModal);
+    confirmModal.addEventListener('click', (e) => {
+      if (e.target === confirmModal) closeDeleteModal();
+    });
+
+    function deleteReport(id) {
+      openDeleteModal(id);
+    }
+
+    function duplicateReport(id) {
+      const data = getReportData(id);
+      if (!data) return;
+      const newId = generateId();
+      const now   = new Date().toISOString();
+      const newData = { ...data, id: newId, title: (data.title || '') + ' (copie)' };
+      const list = getAllReportsMeta();
+      const orig  = list.find(r => r.id === id);
+      const newMeta = {
+        id: newId,
+        title: newData.title,
+        date: data.date || '',
+        location: data.location || '',
+        inspector: data.inspector || '',
+        createdAt: now, updatedAt: now,
+        stepsCount: Array.isArray(data.steps) ? data.steps.length : 0,
+        remarksCount: orig ? (orig.remarksCount || 0) : 0,
+        status: 'draft'
+      };
+      list.unshift(newMeta);
+      saveReportsMeta(list);
+      saveReportData(newId, newData);
+      renderReportsList();
+      showToast(t().reportDuplicated);
+    }
+
+    // Generate PDF from list + mark as 'exported'
+    async function downloadReportPdf(id) {
+      const data = getReportData(id);
+      if (!data) return;
+      // Temporarily load into state for generatePdf()
+      const prevId = state.currentReportId;
+      const prevSteps = state.steps;
+      const prevTitle = reportTitleEl.value;
+      const prevDate  = reportDateEl.value;
+      const prevInsp  = inspectorNameEl.value;
+      const prevLoc   = reportLocationEl.value;
+
+      state.currentReportId = id;
+      state.steps = data.steps || [];
+      reportTitleEl.value    = data.title || '';
+      reportDateEl.value     = data.date || '';
+      inspectorNameEl.value  = data.inspector || '';
+      reportLocationEl.value = data.location || '';
+
+      await generatePdf();
+
+      // Mark as exported
+      const list2 = getAllReportsMeta();
+      const ei = list2.findIndex(r => r.id === id);
+      if (ei >= 0) { list2[ei].status = 'exported'; saveReportsMeta(list2); }
+
+      // Restore
+      state.currentReportId = prevId;
+      state.steps = prevSteps;
+      reportTitleEl.value    = prevTitle;
+      reportDateEl.value     = prevDate;
+      inspectorNameEl.value  = prevInsp;
+      reportLocationEl.value = prevLoc;
+    }
+
+    // ================================================================
+    // EVENT BINDINGS
+    // ================================================================
+    btnAddStep.addEventListener("click", () => {
+      addStep();
+      showToast(t().newStepAdded);
+      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+    });
+
+    btnQuickAdd.addEventListener("click", () => {
+      addStep();
+      showToast(t().newStepAdded);
+      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+    });
+
+    // ================================================================
+    // EXPORT MODAL
+    // ================================================================
+    const exportModalEl = document.getElementById('exportModal');
+
+    function openExportModal() {
+      document.getElementById('exportStepCount').textContent = state.steps.length;
+      exportModalEl.classList.add('active');
+    }
+    function closeExportModal() {
+      exportModalEl.classList.remove('active');
+    }
+    exportModalEl.addEventListener('click', (e) => {
+      if (e.target === exportModalEl) closeExportModal();
+    });
+    exportModalEl.querySelectorAll('[data-export]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const fmt = btn.dataset.export;
+        closeExportModal();
+        if (fmt === 'pdf')  await generatePdf();
+        if (fmt === 'pptx') await generatePptx();
+        if (fmt === 'word') generateWord();
+      });
+    });
+
+    btnDownloadPdf.addEventListener("click", openExportModal);
+
+    // ================================================================
+    // PPTX GENERATION (PptxGenJS)
+    // ================================================================
+    async function generatePptx() {
+      const rawTitle  = reportTitleEl.value || "Rapport d'inspection";
+      const date      = reportDateEl.value || '';
+      const inspector = inspectorNameEl.value || '';
+      const location  = reportLocationEl.value || '';
+      const locDesc   = reportLocationDescEl.value || '';
+
+      loadingOverlay.classList.add('active');
+      try {
+        const pptx = new PptxGenJS();
+        pptx.layout = 'LAYOUT_16x9';
+        pptx.author = inspector || 'Rapport Vita';
+        pptx.title  = rawTitle;
+
+        const NAVY   = '0d233a';
+        const BLUE   = '1e5ba8';
+        const WHITE  = 'FFFFFF';
+        const GRAY   = '64748b';
+        const LGRAY  = 'f1f5f9';
+
+        // ── SLIDE 1: Cover ──────────────────────────────────────────
+        const cover = pptx.addSlide();
+        cover.background = { color: NAVY };
+        // Gradient bar top
+        cover.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: '100%', h: 0.08, fill: { color: '0284c7' } });
+        // Icon area
+        cover.addShape(pptx.ShapeType.rect, { x: 0.5, y: 0.6, w: 0.9, h: 0.9, fill: { color: '1e40af' }, line: { color: '3b82f6', pt: 1.5 }, rectRadius: 0.12 });
+        cover.addText('📋', { x: 0.5, y: 0.6, w: 0.9, h: 0.9, fontSize: 28, align: 'center', valign: 'middle' });
+        // Title
+        cover.addText(rawTitle, {
+          x: 1.6, y: 0.65, w: 8.2, h: 1,
+          fontSize: 28, bold: true, color: WHITE,
+          fontFace: 'Calibri'
+        });
+        cover.addText("Rapport d'inspection technique", {
+          x: 1.6, y: 1.5, w: 8.2, h: 0.4,
+          fontSize: 13, color: '7dd3fc', fontFace: 'Calibri'
+        });
+        // Divider
+        cover.addShape(pptx.ShapeType.line, { x: 0.5, y: 2.1, w: 9, h: 0, line: { color: '1e5ba8', pt: 1.5 } });
+        // Meta rows
+        const metaRows = [
+          { label: '📅 Date', val: date },
+          { label: '👷 Inspecteur', val: inspector },
+          { label: '📍 Lieu', val: location },
+        ].filter(r => r.val);
+        metaRows.forEach((row, i) => {
+          cover.addText(`${row.label}:  ${row.val}`, {
+            x: 0.5, y: 2.35 + i * 0.45, w: 9, h: 0.4,
+            fontSize: 13, color: 'cbd5e1', fontFace: 'Calibri'
+          });
+        });
+        if (locDesc) {
+          cover.addText(locDesc, {
+            x: 0.5, y: 2.35 + metaRows.length * 0.45 + 0.1, w: 9, h: 0.7,
+            fontSize: 11, color: '94a3b8', fontFace: 'Calibri', italic: true
+          });
+        }
+        // Steps summary
+        const nonConf = state.steps.filter(s => s.remarks && s.remarks.trim()).length;
+        cover.addText(`${state.steps.length} étape(s)  •  ${nonConf} remarque(s)`, {
+          x: 0.5, y: 4.6, w: 9, h: 0.4,
+          fontSize: 12, color: '475569', fontFace: 'Calibri'
+        });
+        // Footer
+        cover.addShape(pptx.ShapeType.rect, { x: 0, y: 5.1, w: '100%', h: 0.4, fill: { color: '0a1628' } });
+        cover.addText('Généré avec Rapport Vita • 100% Hors-ligne', {
+          x: 0, y: 5.1, w: '100%', h: 0.4,
+          fontSize: 9, color: '475569', align: 'center', valign: 'middle', fontFace: 'Calibri'
+        });
+
+        // ── SLIDES: One per step ────────────────────────────────────
+        for (let si = 0; si < state.steps.length; si++) {
+          const step = state.steps[si];
+          const slide = pptx.addSlide();
+          slide.background = { color: LGRAY };
+
+          // Header bar
+          slide.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: '100%', h: 0.6, fill: { color: NAVY } });
+          slide.addText(`Étape ${si + 1}`, { x: 0.2, y: 0, w: 2, h: 0.6, fontSize: 11, color: '7dd3fc', valign: 'middle', fontFace: 'Calibri' });
+          slide.addText(step.title || `Étape ${si + 1}`, { x: 1.8, y: 0, w: 8, h: 0.6, fontSize: 16, bold: true, color: WHITE, valign: 'middle', fontFace: 'Calibri' });
+
+          const imgs = step.images || [];
+
+          if (imgs.length > 0) {
+            // Show first image (large)
+            const imgData = imgs[0].dataUrl || imgs[0];
+            try {
+              slide.addImage({ data: imgData, x: 0.3, y: 0.75, w: 5.5, h: 3.8, sizing: { type: 'contain', w: 5.5, h: 3.8 } });
+            } catch(e) { /* skip if image fails */ }
+
+            // Extra thumbnails
+            if (imgs.length > 1) {
+              const thumbW = 1.5, thumbH = 1.05;
+              imgs.slice(1, 4).forEach((img, ti) => {
+                try {
+                  slide.addImage({ data: img.dataUrl || img, x: 6.05 + ti * 0, y: 0.75 + ti * 1.15, w: thumbW, h: thumbH, sizing: { type: 'contain', w: thumbW, h: thumbH } });
+                } catch(e) {}
+              });
+            }
+          } else {
+            // No image placeholder
+            slide.addShape(pptx.ShapeType.rect, { x: 0.3, y: 0.75, w: 5.5, h: 3.8, fill: { color: 'e2e8f0' }, line: { color: 'cbd5e1', pt: 1.5 } });
+            slide.addText('Aucune photo', { x: 0.3, y: 0.75, w: 5.5, h: 3.8, fontSize: 14, color: '94a3b8', align: 'center', valign: 'middle', fontFace: 'Calibri' });
+          }
+
+          // Remarks panel
+          slide.addShape(pptx.ShapeType.rect, { x: 6.0, y: 0.75, w: 3.7, h: 4.6, fill: { color: WHITE }, line: { color: 'e2e8f0', pt: 1 }, rectRadius: 0.1 });
+          slide.addText('💬 Remarques', { x: 6.1, y: 0.85, w: 3.5, h: 0.4, fontSize: 10, bold: true, color: NAVY, fontFace: 'Calibri' });
+          slide.addShape(pptx.ShapeType.line, { x: 6.1, y: 1.25, w: 3.5, h: 0, line: { color: 'e2e8f0', pt: 0.5 } });
+          slide.addText(step.remarks || 'Aucune remarque', {
+            x: 6.1, y: 1.35, w: 3.5, h: 3.8,
+            fontSize: 11, color: step.remarks ? '1e293b' : '94a3b8',
+            valign: 'top', wrap: true, fontFace: 'Calibri',
+            italic: !step.remarks
+          });
+
+          // Footer
+          slide.addShape(pptx.ShapeType.rect, { x: 0, y: 5.1, w: '100%', h: 0.4, fill: { color: 'f8fafc' }, line: { color: 'e2e8f0', pt: 0.5 } });
+          slide.addText(`${rawTitle}  •  Page ${si + 2}`, { x: 0, y: 5.1, w: '100%', h: 0.4, fontSize: 8, color: GRAY, align: 'right', fontFace: 'Calibri' });
+        }
+
+        const filename = rawTitle.replace(/[^a-z0-9\u00C0-\u024F\s-]/gi, '').trim().replace(/\s+/g, '_');
+        await pptx.writeFile({ fileName: `${filename || 'rapport'}.pptx` });
+        showToast('📊 Présentation PowerPoint téléchargée !');
+      } catch(err) {
+        console.error('Erreur PPTX:', err);
+        alert('Erreur lors de la génération PowerPoint : ' + err.message);
+      } finally {
+        loadingOverlay.classList.remove('active');
+      }
+    }
+
+    // ================================================================
+    // WORD GENERATION (HTML→.doc)
+    // ================================================================
+    function generateWord() {
+      const rawTitle  = reportTitleEl.value || "Rapport d'inspection";
+      const date      = reportDateEl.value || '';
+      const inspector = inspectorNameEl.value || '';
+      const location  = reportLocationEl.value || '';
+      const locDesc   = reportLocationDescEl.value || '';
+
+      const nonConf = state.steps.filter(s => s.remarks && s.remarks.trim()).length;
+
+      let stepRows = '';
+      state.steps.forEach((step, i) => {
+        const imgs = (step.images || []).map((img) => {
+          const src = img.dataUrl || img;
+          return `<img src="${src}" style="max-width:380px;max-height:280px;border-radius:6px;margin:4px 4px 4px 0;border:1px solid #e2e8f0;">`;
+        }).join('');
+
+        const hasRemark = step.remarks && step.remarks.trim();
+        stepRows += `
+          <div style="margin:20pt 0;page-break-inside:avoid;border:1.5pt solid #e2e8f0;border-radius:8pt;overflow:hidden;">
+            <div style="background:#0d233a;padding:8pt 12pt;">
+              <span style="color:#7dd3fc;font-size:10pt;font-weight:bold;">Étape ${i+1}</span>
+              <span style="color:#ffffff;font-size:13pt;font-weight:bold;margin-left:12pt;">${escapeHtml(step.title || '')}</span>
+            </div>
+            <div style="padding:12pt;">
+              ${imgs ? `<div style="margin-bottom:10pt;">${imgs}</div>` : '<p style="color:#94a3b8;font-style:italic;">Aucune photo</p>'}
+              <div style="background:${hasRemark ? '#fffbeb' : '#f8fafc'};border-left:4pt solid ${hasRemark ? '#f59e0b' : '#e2e8f0'};padding:8pt 12pt;border-radius:0 4pt 4pt 0;">
+                <p style="font-size:10pt;font-weight:bold;color:#475569;margin:0 0 4pt;">💬 Remarques</p>
+                <p style="font-size:11pt;color:${hasRemark ? '#1e293b' : '#94a3b8'};font-style:${hasRemark ? 'normal' : 'italic'};margin:0;">${escapeHtml(step.remarks || 'Aucune remarque')}</p>
+              </div>
+            </div>
+          </div>`;
+      });
+
+      const html = `
+<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="UTF-8">
+<title>${escapeHtml(rawTitle)}</title>
+<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml><![endif]-->
+<style>
+  @page { margin: 2cm; }
+  body { font-family: Calibri, Arial, sans-serif; color: #1a1a1a; font-size: 11pt; line-height: 1.5; }
+  h1 { color: #0d233a; font-size: 22pt; border-bottom: 2pt solid #1e5ba8; padding-bottom: 6pt; margin-bottom: 12pt; }
+  table { border-collapse: collapse; width: 100%; margin-bottom: 18pt; }
+  td, th { border: 1pt solid #e2e8f0; padding: 7pt 10pt; font-size: 10pt; }
+  th { background: #0d233a; color: #ffffff; font-weight: bold; width: 30%; }
+  .summary-chip { display:inline-block; background:#dbeafe; color:#1e40af; border-radius:20pt; padding:3pt 10pt; font-size:9pt; font-weight:bold; margin-right:6pt; }
+  .summary-chip.warn { background:#fef9c3; color:#854d0e; }
+</style>
+</head>
+<body>
+  <h1>${escapeHtml(rawTitle)}</h1>
+
+  <table>
+    <tr><th>📅 Date d'inspection</th><td>${escapeHtml(date)}</td></tr>
+    <tr><th>👷 Inspecteur</th><td>${escapeHtml(inspector)}</td></tr>
+    <tr><th>📍 Lieu / Chantier</th><td>${escapeHtml(location)}</td></tr>
+    ${locDesc ? `<tr><th>🗺️ Description emplacement</th><td style="white-space:pre-wrap;">${escapeHtml(locDesc)}</td></tr>` : ''}
+    <tr><th>📊 Résumé</th><td>
+      <span class="summary-chip">${state.steps.length} étape(s)</span>
+      ${nonConf > 0 ? `<span class="summary-chip warn">⚠️ ${nonConf} remarque(s)</span>` : ''}
+    </td></tr>
+  </table>
+
+  ${stepRows}
+
+  <p style="margin-top:30pt;font-size:8pt;color:#94a3b8;text-align:center;">Généré avec Rapport Vita • 100% Hors-ligne</p>
+</body>
+</html>`;
+
+      const blob = new Blob([html], { type: 'application/msword' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      const filename = rawTitle.replace(/[^a-z0-9\u00C0-\u024F\s-]/gi, '').trim().replace(/\s+/g, '_');
+      a.href     = url;
+      a.download = `${filename || 'rapport'}.doc`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('📝 Document Word téléchargé !');
+    }
+
+    // Manual Save button
+    btnSaveReport.addEventListener("click", () => {
+      saveToStorage();
+      showToast(t().reportSaved);
+      const lbl = document.getElementById('lblSave');
+      if (lbl) { lbl.textContent = t().saved; }
+      setTimeout(() => { if (lbl) lbl.textContent = t().save; }, 2000);
+    });
+
+    // Back to list
+    btnBack.addEventListener("click", () => {
+      saveToStorage();
+      showListScreen();
+    });
+
+    // New report from list
+    document.getElementById('btnNewReport').addEventListener("click", createNewReport);
+
+    // Search
+    document.getElementById('reportsSearchInput').addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      renderReportsList();
+    });
+
+    // Filter tabs
+    document.querySelectorAll('.btn-filter').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activeFilter = btn.dataset.filter;
+        document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderReportsList();
+      });
+    });
+
+    reportTitleEl.addEventListener("input", saveToStorage);
+    reportDateEl.addEventListener("input", saveToStorage);
+    inspectorNameEl.addEventListener("input", saveToStorage);
+    reportLocationEl.addEventListener("input", saveToStorage);
+    reportLocationDescEl.addEventListener("input", saveToStorage);
+
+    btnClearAll.addEventListener("click", () => {
+      if (confirm(t().confirmClear)) {
+        state.steps = [];
+        reportTitleEl.value = "";
+        inspectorNameEl.value = "";
+        reportLocationEl.value = "";
+        reportLocationDescEl.value = "";
+        reportDateEl.value = new Date().toISOString().split("T")[0];
+        renderSteps();
+        saveToStorage();
+        showToast(t().resetDone);
+      }
+    });
+
+    // ================================================================
+    // INITIAL APP BOOT
+    // ================================================================
+    applyDark();
+    migrateLegacy();
+    applyLang();
+    showListScreen();
+  </script>
+</body>
+</html>

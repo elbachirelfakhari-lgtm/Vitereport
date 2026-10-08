@@ -1,0 +1,3156 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ViteReport — Solution Moderne de Création & Export de Rapports (vitereport.com)</title>
+  <meta name="description" content="Application mobile moderne pour créer rapidement vos rapports d'inspection de chantier et terrain. 100% hors-ligne, photos horodatées et export immédiat en PDF, PPTX et Word.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="logo.png">
+  
+  <!-- Polices modernes : Plus Jakarta Sans pour les titres et Inter pour l'interface -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ==========================================================================
+       VARIABLES ET SYSTÈME DE DESIGN
+       ========================================================================== */
+    :root {
+      --font-heading: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+      --primary-navy: #091a34;
+      --primary-dark: #051022;
+      --primary-blue: #0072ff;
+      --accent-blue: #0088ff;
+      --accent-cyan: #00c6ff;
+      --accent-emerald: #10b981;
+      --brand-gradient: linear-gradient(135deg, #00c6ff 0%, #0072ff 60%, #1a56db 100%);
+      
+      --bg-page: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-subtle: #f1f5f9;
+      --bg-card: #ffffff;
+      
+      --text-main: #0f172a;
+      --text-muted: #526077;
+      --text-subtle: #8a96a8;
+
+      --border-light: rgba(15, 23, 42, 0.08);
+      --border-card: rgba(15, 23, 42, 0.06);
+
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+      --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
+      --shadow-lg: 0 16px 36px -8px rgba(15, 23, 42, 0.08), 0 4px 12px rgba(15, 23, 42, 0.03);
+      --shadow-floating: 0 25px 60px -15px rgba(13, 35, 58, 0.18), 0 0 0 1px rgba(13, 35, 58, 0.06);
+      --shadow-phone: 0 30px 70px -15px rgba(13, 35, 58, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.08);
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+      --radius-xl: 24px;
+      --radius-pill: 9999px;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      line-height: 1.55;
+      overflow-x: hidden;
+      position: relative;
+      max-width: 100vw;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button, input {
+      font-family: inherit;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1260px;
+      margin: 0 auto;
+      padding: 0 28px;
+    }
+
+    /* Halo lumineux en arrière-plan */
+    .ambient-glow {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 780px;
+      background: linear-gradient(180deg, #e5e9f2 0%, #edf1f7 38%, #f8fafc 82%, var(--bg-page) 100%);
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    /* Bandeau d'accès direct vers l'application */
+    .app-direct-bar {
+      background: #0d233a;
+      color: #94a3b8;
+      font-size: 0.8rem;
+      padding: 8px 16px;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .app-direct-bar a {
+      color: #38bdf8;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .app-direct-bar a:hover {
+      text-decoration: underline;
+    }
+
+    /* ==========================================================================
+       EN-TÊTE / NAVBAR
+       ========================================================================== */
+    .navbar {
+      width: 100%;
+      padding: 12px 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(248, 250, 252, 0.92);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--border-card);
+    }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .main-header-logo {
+      height: 42px;
+      width: auto;
+      object-fit: contain;
+      filter: drop-shadow(0 1px 3px rgba(0,0,0,0.08));
+      transition: transform 0.2s ease;
+      cursor: pointer;
+    }
+
+    .main-header-logo:hover {
+      transform: scale(1.05);
+    }
+
+    body.dark-mode .main-header-logo {
+      filter: drop-shadow(0 0 10px rgba(0, 198, 255, 0.5)) brightness(1.1);
+    }
+      stroke-width: 2.3;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .brand-text-col {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand-title {
+      font-family: var(--font-heading);
+      font-size: 1.18rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--primary-navy);
+      line-height: 1.15;
+    }
+
+    .brand-subtitle-badge {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--accent-emerald);
+      letter-spacing: 0.02em;
+    }
+
+    .navbar .container {
+      max-width: 1400px;
+      padding: 0 24px;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      list-style: none;
+      margin-left: 18px;
+      flex-shrink: 1;
+    }
+
+    /* Navbar no-overflow fix & enforce consistent LTR layout across all languages */
+    .navbar {
+      overflow: visible;
+      direction: ltr !important;
+    }
+    .nav-inner {
+      overflow: visible;
+      direction: ltr !important;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      direction: ltr !important;
+      text-decoration: none;
+    }
+    .nav-right-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      direction: ltr !important;
+    }
+    .brand-title {
+      white-space: nowrap !important;
+    }
+
+    .nav-link {
+      font-size: 0.86rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      transition: color 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+      letter-spacing: -0.01em;
+    }
+
+    .nav-link:hover {
+      color: var(--primary-navy);
+    }
+
+    .nav-right-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    /* Sélecteur de langue (identique à l'image utilisateur) */
+    .lang-switcher {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      background: rgba(13, 35, 58, 0.06);
+      padding: 3px;
+      border-radius: 8px;
+      border: 1px solid var(--border-light);
+    }
+
+    .btn-lang {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      border-radius: 5px;
+      padding: 0.18rem 0.38rem;
+      font-size: 0.65rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+
+    .btn-lang.active {
+      background: var(--primary-navy);
+      color: #ffffff;
+      border-color: var(--primary-navy);
+      box-shadow: 0 1px 4px rgba(9, 26, 52, 0.22);
+    }
+
+    .btn-lang:hover:not(.active) {
+      color: var(--primary-navy);
+    }
+
+    /* Bouton Dark Mode (identique à l'image utilisateur) */
+    .btn-darkmode {
+      background: rgba(13, 35, 58, 0.06);
+      border: 1px solid var(--border-light);
+      color: var(--primary-navy);
+      border-radius: 8px;
+      width: 32px;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-darkmode:hover {
+      background: rgba(13, 35, 58, 0.12);
+      color: var(--primary-navy);
+    }
+
+    .btn-darkmode svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Boutons Connexion / Inscription */
+    .btn-auth-nav {
+      background: transparent;
+      border: 1px solid var(--border-light);
+      color: var(--primary-navy);
+      font-weight: 600;
+      font-size: 0.82rem;
+      padding: 7px 12px;
+      border-radius: var(--radius-pill);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .btn-auth-nav:hover {
+      background: var(--bg-subtle);
+      border-color: rgba(13, 35, 58, 0.2);
+    }
+
+    .btn-auth-signup {
+      background: var(--bg-subtle);
+      border-color: var(--border-light);
+      color: var(--primary-navy);
+      font-weight: 700;
+    }
+
+    .btn-auth-signup:hover {
+      background: #e2e8f0;
+    }
+
+    /* Bouton principal vers l'application */
+    .btn-launch-app {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--primary-navy);
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 0.84rem;
+      padding: 8px 16px;
+      border-radius: var(--radius-pill);
+      box-shadow: 0 3px 10px rgba(13, 35, 58, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .btn-launch-app:hover {
+      background: #16365c;
+      transform: translateY(-1px);
+      box-shadow: 0 5px 15px rgba(13, 35, 58, 0.28);
+    }
+
+    .btn-launch-app svg {
+      width: 15px;
+      height: 15px;
+      transition: transform 0.2s ease;
+    }
+
+    .btn-launch-app:hover svg {
+      transform: translateX(3px);
+    }
+
+    .btn-hamburger {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px;
+      color: var(--primary-navy);
+    }
+
+    .btn-hamburger svg {
+      width: 24px;
+      height: 24px;
+      stroke-width: 2.2;
+    }
+
+    /* ==========================================================================
+       STYLES DU MODE SOMBRE (DARK MODE)
+       ========================================================================== */
+    body.dark-mode {
+      --bg-page: #09111e;
+      --bg-surface: #111e33;
+      --bg-subtle: #162540;
+      --bg-card: #111e33;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-subtle: #64748b;
+      --border-light: rgba(255, 255, 255, 0.1);
+      --border-card: rgba(255, 255, 255, 0.08);
+    }
+
+    body.dark-mode .navbar {
+      background: rgba(9, 17, 30, 0.92);
+      border-bottom-color: rgba(255, 255, 255, 0.08);
+    }
+
+    body.dark-mode .ambient-glow {
+      background: linear-gradient(180deg, #13223a 0%, #0d1728 45%, #09111e 100%);
+    }
+
+    body.dark-mode .app-direct-bar {
+      background: #060b14;
+      border-bottom-color: rgba(255, 255, 255, 0.06);
+    }
+
+    body.dark-mode .lang-switcher {
+      background: rgba(255, 255, 255, 0.07);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    body.dark-mode .btn-lang {
+      color: #94a3b8;
+    }
+
+    body.dark-mode .btn-lang.active {
+      background: #1e5ba8;
+      color: #ffffff;
+      border-color: #3b82f6;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+
+    body.dark-mode .btn-darkmode {
+      background: rgba(255, 255, 255, 0.07);
+      border-color: rgba(255, 255, 255, 0.12);
+      color: #f8fafc;
+    }
+
+    body.dark-mode .btn-darkmode:hover {
+      background: rgba(255, 255, 255, 0.14);
+      color: #38bdf8;
+    }
+
+    body.dark-mode .btn-auth-nav {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.12);
+      color: #f8fafc;
+    }
+
+    body.dark-mode .btn-auth-nav:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    body.dark-mode .btn-auth-signup {
+      background: #1e5ba8;
+      border-color: #2563eb;
+      color: #ffffff;
+    }
+
+    body.dark-mode .btn-auth-signup:hover {
+      background: #2563eb;
+    }
+
+    body.dark-mode .btn-launch-app {
+      background: linear-gradient(135deg, #1e5ba8 0%, #0284c7 100%) !important;
+      color: #ffffff !important;
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+
+    body.dark-mode .nav-link {
+      color: #94a3b8;
+    }
+
+    body.dark-mode .nav-link:hover {
+      color: #38bdf8;
+    }
+
+    body.dark-mode .social-proof-bar,
+    body.dark-mode .metrics-strip,
+    body.dark-mode .faq-section,
+    body.dark-mode .page-footer {
+      background: #0d1728;
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    body.dark-mode .floating-card-satellite {
+      background: #14223b;
+      border-color: rgba(255, 255, 255, 0.14);
+      color: #f8fafc;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+    }
+
+    body.dark-mode .floating-card-satellite .sat-site-name {
+      color: #f8fafc;
+    }
+
+    body.dark-mode .pill-format-btn {
+      background: #1a2b4a;
+      color: #cbd5e1;
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    body.dark-mode .pill-format-btn.active {
+      background: #1e3a8a;
+      color: #93c5fd;
+      border-color: #3b82f6;
+    }
+
+    body.dark-mode .bento-card-unit {
+      background: #111e33;
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    body.dark-mode .bento-card-title,
+    body.dark-mode .section-heading-big,
+    body.dark-mode .metric-value-huge,
+    body.dark-mode .faq-question-btn,
+    body.dark-mode .brand-title,
+    body.dark-mode .footer-heading-col {
+      color: #f8fafc;
+    }
+
+    body.dark-mode .bento-icon-container {
+      background: #192a47;
+      color: #60a5fa;
+    }
+
+    body.dark-mode .step-preview-box {
+      background: #0b1424;
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    body.dark-mode .step-node {
+      background: #14223b;
+      border-color: rgba(255, 255, 255, 0.12);
+      color: #f8fafc;
+    }
+
+    body.dark-mode .btn-hero-primary,
+    body.dark-mode .btn-launch-app {
+      background: #2563eb;
+      color: #ffffff;
+      border-color: #3b82f6;
+    }
+
+    body.dark-mode .btn-hero-primary:hover,
+    body.dark-mode .btn-launch-app:hover {
+      background: #1d4ed8;
+    }
+
+    body.dark-mode .btn-hero-secondary {
+      background: #14223b;
+      color: #f8fafc;
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    body.dark-mode .btn-hero-secondary:hover {
+      background: #1a2c4e;
+    }
+
+    body.dark-mode .lang-switcher {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    body.dark-mode .btn-lang {
+      color: #94a3b8;
+    }
+
+    body.dark-mode .btn-lang.active {
+      background: #1e293b;
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    body.dark-mode .btn-darkmode {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.14);
+      color: #f8fafc;
+    }
+
+    body.dark-mode .btn-darkmode:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    body.dark-mode .btn-auth-nav {
+      color: #f8fafc;
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    body.dark-mode .btn-auth-nav:hover {
+      background: #162540;
+    }
+
+    body.dark-mode .btn-auth-signup {
+      background: #192a47;
+      border-color: rgba(255, 255, 255, 0.15);
+      color: #f8fafc;
+    }
+
+    body.dark-mode .mobile-drawer {
+      background: #0d1728;
+      border-bottom-color: rgba(255, 255, 255, 0.1);
+    }
+
+    body.dark-mode .mobile-drawer a {
+      color: #f8fafc;
+    }
+
+    /* Dark mode - Hero section text fixes */
+    body.dark-mode .hero-main-title {
+      color: #f1f5f9;
+    }
+
+    body.dark-mode .hero-main-title span {
+      background: linear-gradient(135deg, #38bdf8 0%, #60a5fa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    body.dark-mode .hero-description,
+    body.dark-mode .hero-target-audience {
+      color: #94a3b8;
+    }
+
+    body.dark-mode .hero-proof-strip {
+      border-top-color: rgba(255, 255, 255, 0.08);
+      color: #94a3b8;
+    }
+
+    body.dark-mode .proof-bar-label {
+      color: #64748b;
+    }
+
+    body.dark-mode .proof-logo-text {
+      color: #475569;
+    }
+
+    body.dark-mode .section-subheading-text {
+      color: #94a3b8;
+    }
+
+    body.dark-mode .btn-hamburger {
+      color: #f8fafc;
+    }
+
+    body.dark-mode .brand-title {
+      color: #f1f5f9;
+    }
+
+    /* RTL Arabic Support - Clean & Consistent */
+    html[dir="rtl"] {
+      text-align: right;
+    }
+
+    /* Navbar & Brand always keep the exact same LTR structure as French */
+    html[dir="rtl"] .navbar,
+    html[dir="rtl"] .nav-inner,
+    html[dir="rtl"] .nav-brand,
+    html[dir="rtl"] .nav-right-actions,
+    html[dir="rtl"] .lang-switcher {
+      direction: ltr !important;
+    }
+
+    /* Action button arrows flip for RTL */
+    html[dir="rtl"] .btn-hero-primary svg,
+    html[dir="rtl"] .btn-launch-app svg {
+      transform: scaleX(-1);
+    }
+
+    /* Mobile drawer text alignment in RTL */
+    html[dir="rtl"] .mobile-drawer {
+      direction: rtl;
+      text-align: right;
+    }
+    html[dir="rtl"] .mobile-drawer .lang-switcher,
+    html[dir="rtl"] .mobile-drawer .btn-launch-app {
+      direction: ltr;
+    }
+
+    html[dir="rtl"] .sat-top-left {
+      left: auto;
+      right: -20px;
+    }
+
+    html[dir="rtl"] .sat-bottom-right {
+      right: auto;
+      left: -25px;
+    }
+
+    /* ==========================================================================
+       MODAL DE CONNEXION / INSCRIPTION (AUTH MODAL)
+       ========================================================================== */
+    .auth-modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(13, 23, 38, 0.65);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.25s ease;
+    }
+
+    .auth-modal-backdrop.open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .auth-modal-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-xl);
+      width: 100%;
+      max-width: 440px;
+      padding: 32px 30px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25);
+      position: relative;
+      transform: translateY(12px);
+      transition: transform 0.25s ease;
+    }
+
+    .auth-modal-backdrop.open .auth-modal-card {
+      transform: translateY(0);
+    }
+
+    .auth-close-btn {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      background: transparent;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      color: var(--text-muted);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.15s;
+    }
+
+    .auth-close-btn:hover {
+      background: var(--bg-subtle);
+      color: var(--text-main);
+    }
+
+    .auth-tabs-row {
+      display: flex;
+      border-bottom: 2px solid var(--border-light);
+      margin-bottom: 24px;
+    }
+
+    .auth-tab-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      padding: 10px 0;
+      font-family: var(--font-heading);
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      position: relative;
+      transition: color 0.15s;
+    }
+
+    .auth-tab-btn.active {
+      color: #2563eb;
+    }
+
+    .auth-tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #2563eb;
+    }
+
+    .auth-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .auth-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      text-align: left;
+    }
+
+    html[dir="rtl"] .auth-field {
+      text-align: right;
+    }
+
+    .auth-field label {
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .auth-input {
+      padding: 11px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-light);
+      background: var(--bg-surface);
+      color: var(--text-main);
+      font-size: 0.92rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .auth-input:focus {
+      border-color: #2563eb;
+    }
+
+    .auth-extras-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .btn-auth-submit {
+      background: #2563eb;
+      color: #ffffff;
+      border: none;
+      padding: 12px;
+      border-radius: var(--radius-pill);
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background-color 0.15s;
+      margin-top: 4px;
+    }
+
+    .btn-auth-submit:hover {
+      background: #1d4ed8;
+    }
+
+    .auth-divider {
+      text-align: center;
+      position: relative;
+      margin: 8px 0;
+    }
+
+    .auth-divider::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: var(--border-light);
+    }
+
+    .auth-divider span {
+      position: relative;
+      background: var(--bg-surface);
+      padding: 0 10px;
+      font-size: 0.78rem;
+      color: var(--text-subtle);
+    }
+
+    .btn-auth-guest {
+      display: block;
+      text-align: center;
+      padding: 11px;
+      border-radius: var(--radius-pill);
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-light);
+      color: var(--text-main);
+      font-size: 0.88rem;
+      font-weight: 600;
+      transition: background-color 0.15s;
+    }
+
+    .btn-auth-guest:hover {
+      background: #e2e8f0;
+    }
+
+    /* Menu mobile */
+    .mobile-drawer {
+      display: none;
+      background: #ffffff;
+      border-bottom: 1px solid var(--border-light);
+      padding: 20px 28px;
+      box-shadow: var(--shadow-lg);
+      position: absolute;
+      top: 100%;
+      left: 0;
+      width: 100%;
+      z-index: 99;
+    }
+
+    .mobile-drawer.open {
+      display: block;
+    }
+
+    .mobile-drawer ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .mobile-drawer a {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text-main);
+      display: block;
+      padding: 6px 0;
+    }
+
+    /* ==========================================================================
+       SECTION HERO (TEXTE + CAPTURE DE SITE HTTP://LOCALHOST:3000)
+       ========================================================================== */
+    .hero-section {
+      padding: 50px 0 90px;
+      position: relative;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.05fr 1fr;
+      gap: 48px;
+      align-items: center;
+      min-height: 580px;
+    }
+
+    .hero-left-copy {
+      z-index: 10;
+    }
+
+    .pill-status-offline {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: var(--radius-pill);
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      color: #065f46;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-bottom: 22px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .pulse-dot-green {
+      width: 7px;
+      height: 7px;
+      background: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+    }
+
+    .hero-main-title {
+      font-family: var(--font-heading);
+      font-size: clamp(1.9rem, 3.5vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      color: var(--primary-navy);
+      margin-bottom: 16px;
+    }
+
+    .hero-target-audience {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      font-style: italic;
+      margin-bottom: 28px;
+      margin-top: -20px;
+    }
+
+    .hero-main-title span {
+      background: linear-gradient(135deg, #1e5ba8 0%, #0284c7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-description {
+      font-size: 1.12rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      max-width: 520px;
+      margin-bottom: 34px;
+    }
+
+    .hero-actions-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 36px;
+    }
+
+    .btn-hero-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--primary-navy);
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 1rem;
+      padding: 14px 28px;
+      border-radius: var(--radius-pill);
+      box-shadow: 0 4px 14px rgba(13, 35, 58, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-hero-primary:hover {
+      background: #16365c;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(13, 35, 58, 0.32);
+    }
+
+    .btn-hero-primary svg {
+      width: 16px;
+      height: 16px;
+      transition: transform 0.2s ease;
+    }
+
+    .btn-hero-primary:hover svg {
+      transform: translateX(4px);
+    }
+
+    .btn-hero-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #ffffff;
+      color: var(--primary-navy);
+      font-weight: 600;
+      font-size: 0.98rem;
+      padding: 13px 24px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border-light);
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-hero-secondary:hover {
+      background: var(--bg-subtle);
+      border-color: rgba(13, 35, 58, 0.18);
+    }
+
+    .hero-proof-strip {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      border-top: 1px solid rgba(15, 23, 42, 0.08);
+      padding-top: 22px;
+    }
+
+    .proof-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+    }
+
+    .proof-item svg {
+      color: var(--accent-emerald);
+      width: 16px;
+      height: 16px;
+    }
+
+    /* ==========================================================================
+       SECTION DROITE : MISE EN VALEUR DE LA CAPTURE HTTP://LOCALHOST:3000
+       ========================================================================== */
+    .hero-visual-stage {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 0;
+    }
+
+    .visual-stage-backdrop {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 480px;
+      height: 480px;
+      background: radial-gradient(circle, rgba(30, 91, 168, 0.12) 0%, rgba(2, 132, 199, 0.05) 50%, transparent 70%);
+      filter: blur(40px);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* Cadre smartphone moderne et épuré affichant l'image réelle */
+    .phone-mockup-frame {
+      position: relative;
+      z-index: 10;
+      width: 320px;
+      max-width: 100%;
+      border-radius: 42px;
+      background: #0f172a;
+      padding: 10px;
+      box-shadow: var(--shadow-phone);
+      border: 3px solid #1e293b;
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
+    }
+
+    .phone-mockup-frame:hover {
+      transform: translateY(-4px) scale(1.01);
+      box-shadow: 0 35px 80px -15px rgba(13, 35, 58, 0.32);
+    }
+
+    .phone-inner-screen {
+      border-radius: 32px;
+      overflow: hidden;
+      background: #0d233a;
+      position: relative;
+      line-height: 0;
+    }
+
+    .phone-screenshot-img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 32px;
+      object-fit: cover;
+    }
+
+    /* Cartes satellites flottantes autour du téléphone */
+    .floating-card-satellite {
+      position: absolute;
+      background: #ffffff;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      padding: 14px 18px;
+      box-shadow: var(--shadow-floating);
+      z-index: 20;
+      transition: transform 0.3s ease;
+    }
+
+    .floating-card-satellite:hover {
+      transform: translateY(-3px);
+    }
+
+    /* Carte 1 : Haut Gauche - Informations Chantier */
+    .sat-top-left {
+      top: 10px;
+      left: -30px;
+      width: 230px;
+    }
+
+    .sat-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .sat-badge-tag {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: #ecfdf5;
+      color: #065f46;
+    }
+
+    .sat-site-name {
+      font-size: 0.88rem;
+      font-weight: 800;
+      color: var(--primary-navy);
+      line-height: 1.2;
+    }
+
+    .sat-site-details {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Carte 2 : Bas Droite - Multi-Formats PDF, PPTX, Word */
+    .sat-bottom-right {
+      bottom: 25px;
+      right: -25px;
+      width: 260px;
+    }
+
+    .format-pills-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .pill-format-btn {
+      flex: 1;
+      text-align: center;
+      padding: 6px 4px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      background: #f1f5f9;
+      color: var(--primary-navy);
+      border: 1px solid var(--border-light);
+    }
+
+    .pill-format-btn.active {
+      background: #eff6ff;
+      color: #1e5ba8;
+      border-color: #bfdbfe;
+    }
+
+    /* ==========================================================================
+       SECTION LOGOS / RÉFÉRENCES TERRAIN
+       ========================================================================== */
+    .social-proof-bar {
+      padding: 46px 0;
+      border-top: 1px solid var(--border-light);
+      border-bottom: 1px solid var(--border-light);
+      text-align: center;
+      background: #ffffff;
+    }
+
+    .proof-bar-label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-subtle);
+      margin-bottom: 22px;
+    }
+
+    .proof-logos-grid {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 46px;
+      flex-wrap: wrap;
+      opacity: 0.75;
+    }
+
+    .proof-logo-text {
+      font-family: var(--font-heading);
+      font-weight: 800;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ==========================================================================
+       SECTION FONCTIONNALITÉS / BENTO GRID
+       ========================================================================== */
+    .features-section {
+      padding: 90px 0;
+    }
+
+    .section-header-center {
+      text-align: center;
+      max-width: 680px;
+      margin: 0 auto 56px;
+    }
+
+    .section-eyebrow {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--primary-blue);
+      margin-bottom: 10px;
+      display: inline-block;
+    }
+
+    .section-heading-big {
+      font-family: var(--font-heading);
+      font-size: clamp(2rem, 3.5vw, 2.75rem);
+      font-weight: 800;
+      letter-spacing: -0.035em;
+      color: var(--primary-navy);
+      line-height: 1.18;
+      margin-bottom: 14px;
+    }
+
+    .section-subheading-text {
+      font-size: 1.06rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      width: 100%;
+    }
+
+    .bento-card-unit {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-xl);
+      padding: 34px 28px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .bento-card-unit:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .bento-card-unit.col-2 {
+      grid-column: span 2;
+    }
+
+    .bento-icon-container {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      background: #f1f5f9;
+      color: var(--primary-navy);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 22px;
+    }
+
+    .bento-icon-container svg {
+      width: 24px;
+      height: 24px;
+      stroke-width: 2;
+    }
+
+    .bento-card-title {
+      font-family: var(--font-heading);
+      font-size: 1.3rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--primary-navy);
+      margin-bottom: 10px;
+    }
+
+    .bento-card-paragraph {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      line-height: 1.58;
+      margin-bottom: 22px;
+    }
+
+    .step-preview-box {
+      background: #f8fafc;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      flex-wrap: wrap;
+      overflow-x: auto;
+      max-width: 100%;
+    }
+
+    .step-node {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      padding: 8px 12px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+
+    /* ==========================================================================
+       SECTION CHIFFRES CLÉS
+       ========================================================================== */
+    .metrics-strip {
+      padding: 70px 0;
+      background: #ffffff;
+      border-top: 1px solid var(--border-light);
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .metrics-grid-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 32px;
+      text-align: center;
+    }
+    @media (max-width: 600px) {
+      .metrics-grid-row {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+      }
+    }
+
+    .metric-value-huge {
+      font-family: var(--font-heading);
+      font-size: clamp(2.2rem, 3.5vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: var(--primary-navy);
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .metric-label-desc {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    /* ==========================================================================
+       SECTION TARIFICATION (EXACTEMENT SELON VOTRE DEMANDE)
+       ========================================================================== */
+    .pricing-section {
+      padding: 100px 0 120px;
+      background: #f8fafc;
+    }
+
+    .pricing-cadence-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin-bottom: 50px;
+    }
+
+    .toggle-text {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .toggle-text.active {
+      color: var(--primary-navy);
+    }
+
+    .toggle-switch-pill {
+      width: 50px;
+      height: 28px;
+      background: var(--primary-navy);
+      border-radius: var(--radius-pill);
+      padding: 3px;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .toggle-switch-handle {
+      width: 22px;
+      height: 22px;
+      background: #ffffff;
+      border-radius: 50%;
+      transition: transform 0.2s ease;
+      transform: translateX(22px);
+    }
+
+    .toggle-switch-pill.monthly .toggle-switch-handle {
+      transform: translateX(0);
+    }
+
+    .save-discount-tag {
+      font-size: 0.74rem;
+      font-weight: 700;
+      background: #dbeafe;
+      color: #1e40af;
+      padding: 3px 8px;
+      border-radius: var(--radius-pill);
+    }
+
+    .pricing-columns-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px;
+      align-items: stretch;
+      max-width: 1140px;
+      margin: 0 auto;
+    }
+
+    .pricing-card-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-xl);
+      padding: 38px 30px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .pricing-card-box:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    /* FORFAIT PRO : MIS EN VALEUR VISUELLEMENT SANS ÊTRE TROP AGRESSIF */
+    .pricing-card-box.is-pro-highlight {
+      border: 2px solid var(--primary-navy);
+      box-shadow: 0 20px 45px -10px rgba(13, 35, 58, 0.14), 0 0 0 1px rgba(13, 35, 58, 0.08);
+      transform: scale(1.03);
+      z-index: 2;
+    }
+
+    .pricing-card-box.is-pro-highlight:hover {
+      transform: scale(1.03) translateY(-4px);
+      box-shadow: 0 28px 60px -12px rgba(13, 35, 58, 0.2);
+    }
+
+    .pro-ribbon-badge {
+      position: absolute;
+      top: -13px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--primary-navy);
+      color: #ffffff;
+      padding: 4px 14px;
+      border-radius: var(--radius-pill);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.18);
+    }
+
+    .plan-header-block {
+      margin-bottom: 22px;
+    }
+
+    .plan-title-name {
+      font-family: var(--font-heading);
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--primary-navy);
+      margin-bottom: 8px;
+    }
+
+    .plan-subtext-desc {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+      min-height: 40px;
+    }
+
+    .plan-price-block {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      margin-bottom: 26px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .currency-symbol {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--primary-navy);
+    }
+
+    .number-price {
+      font-family: var(--font-heading);
+      font-size: 3rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      color: var(--primary-navy);
+    }
+
+    .period-label {
+      font-size: 0.88rem;
+      color: var(--text-subtle);
+    }
+
+    .features-list-block {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 13px;
+      margin-bottom: 34px;
+      flex: 1;
+    }
+
+    .feature-point-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 0.92rem;
+      color: var(--text-main);
+      line-height: 1.4;
+    }
+
+    .feature-point-row.strong-item {
+      font-weight: 600;
+    }
+
+    .check-icon-circle {
+      width: 17px;
+      height: 17px;
+      border-radius: 50%;
+      background: #f1f5f9;
+      color: var(--primary-navy);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .is-pro-highlight .check-icon-circle {
+      background: #eff6ff;
+      color: var(--primary-blue);
+    }
+
+    .check-icon-circle svg {
+      width: 11px;
+      height: 11px;
+      stroke-width: 2.5;
+    }
+
+    .btn-pricing-cta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      padding: 12px 18px;
+      border-radius: var(--radius-pill);
+      font-weight: 600;
+      font-size: 0.92rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border: 1px solid var(--border-light);
+      background: #ffffff;
+      color: var(--primary-navy);
+    }
+
+    .btn-pricing-cta:hover {
+      background: var(--bg-subtle);
+      border-color: rgba(13, 35, 58, 0.2);
+    }
+
+    .btn-pricing-cta.btn-pro-action {
+      background: var(--primary-navy);
+      color: #ffffff;
+      border-color: var(--primary-navy);
+      box-shadow: 0 4px 12px rgba(13, 35, 58, 0.2);
+    }
+
+    .btn-pricing-cta.btn-pro-action:hover {
+      background: #16365c;
+      transform: translateY(-1px);
+    }
+
+    /* ==========================================================================
+       SECTION FAQ
+       ========================================================================== */
+    .faq-section {
+      padding: 90px 0;
+      background: #ffffff;
+      border-top: 1px solid var(--border-light);
+    }
+
+    .faq-wrap-list {
+      max-width: 740px;
+      margin: 0 auto;
+    }
+
+    .faq-accordion-item {
+      border-bottom: 1px solid var(--border-light);
+      padding: 22px 0;
+    }
+
+    .faq-accordion-item:first-child {
+      border-top: 1px solid var(--border-light);
+    }
+
+    .faq-question-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--primary-navy);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .faq-icon-cross {
+      font-size: 1.3rem;
+      color: var(--text-subtle);
+      transition: transform 0.2s ease;
+    }
+
+    .faq-accordion-item.active .faq-icon-cross {
+      transform: rotate(45deg);
+    }
+
+    .faq-answer-block {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-top: 12px;
+      display: none;
+    }
+
+    .faq-accordion-item.active .faq-answer-block {
+      display: block;
+    }
+
+    /* ==========================================================================
+       BANNIÈRE FINALE CTA
+       ========================================================================== */
+    .cta-banner-container {
+      padding: 40px 0 100px;
+    }
+
+    .cta-banner-box {
+      background: linear-gradient(135deg, var(--primary-navy) 0%, #16365c 100%);
+      color: #ffffff;
+      border-radius: var(--radius-xl);
+      padding: 60px 40px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .cta-banner-heading {
+      font-family: var(--font-heading);
+      font-size: clamp(2rem, 3.8vw, 2.8rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 14px;
+    }
+
+    .cta-banner-desc {
+      font-size: 1.1rem;
+      color: #94a3b8;
+      max-width: 560px;
+      margin: 0 auto 32px;
+    }
+
+    .btn-cta-launch {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: #ffffff;
+      color: var(--primary-navy);
+      font-weight: 700;
+      padding: 14px 30px;
+      border-radius: var(--radius-pill);
+      font-size: 1rem;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transition: all 0.2s ease;
+    }
+
+    .btn-cta-launch:hover {
+      background: #f1f5f9;
+      transform: translateY(-2px);
+    }
+
+    /* ==========================================================================
+       PIED DE PAGE (FOOTER)
+       ========================================================================== */
+    .page-footer {
+      background: #ffffff;
+      border-top: 1px solid var(--border-light);
+      padding: 70px 0 36px;
+    }
+
+    .footer-grid-row {
+      display: grid;
+      grid-template-columns: 2fr repeat(3, 1fr);
+      gap: 40px;
+      margin-bottom: 50px;
+    }
+
+    .footer-desc-text {
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      line-height: 1.6;
+      margin: 14px 0 18px;
+      max-width: 290px;
+    }
+
+    .footer-heading-col {
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--primary-navy);
+      margin-bottom: 16px;
+    }
+
+    .footer-links-group {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+    }
+
+    .footer-item-link {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      transition: color 0.15s ease;
+    }
+
+    .footer-item-link:hover {
+      color: var(--primary-navy);
+    }
+
+    .footer-bottom-bar {
+      border-top: 1px solid var(--border-light);
+      padding-top: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--text-subtle);
+      font-size: 0.82rem;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+
+    /* ==========================================================================
+       RESPONSIVE MOBILE ET TABLETTE
+       ========================================================================== */
+    @media (max-width: 1024px) {
+      .hero-grid {
+        grid-template-columns: 1fr;
+        gap: 50px;
+      }
+      .sat-top-left {
+        left: 0;
+        top: -10px;
+      }
+      .sat-bottom-right {
+        right: 0;
+        bottom: -15px;
+      }
+      .bento-grid {
+        grid-template-columns: 1fr;
+      }
+      .bento-card-unit.col-2 {
+        grid-column: span 1;
+      }
+      .pricing-columns-grid {
+        grid-template-columns: 1fr;
+        max-width: 480px;
+      }
+      .pricing-card-box.is-pro-highlight {
+        transform: none;
+      }
+      .pricing-card-box.is-pro-highlight:hover {
+        transform: translateY(-4px);
+      }
+      .footer-grid-row {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .main-header-logo {
+        height: 38px !important;
+      }
+      .brand-title {
+        font-size: 1.05rem !important;
+        white-space: nowrap !important;
+      }
+      /* Cache les liens de nav et les boutons larges */
+      .nav-links {
+        display: none;
+      }
+      /* Affiche le hamburger */
+      .btn-hamburger {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      /* Cache Connexion / S'inscrire / Ouvrir l'app dans la navbar uniquement */
+      .nav-right-actions .btn-auth-nav,
+      .nav-right-actions .btn-launch-app {
+        display: none !important;
+      }
+      /* Garde-les visibles dans le drawer mobile */
+      .mobile-drawer .btn-auth-nav,
+      .mobile-drawer .btn-launch-app {
+        display: flex !important;
+      }
+      /* Réduit le gap des actions droites */
+      .nav-right-actions {
+        gap: 6px;
+      }
+      /* Réduit la taille du lang switcher */
+      .lang-switcher {
+        padding: 2px;
+        gap: 1px;
+      }
+      .btn-lang {
+        padding: 0.18rem 0.38rem;
+        font-size: 0.62rem;
+      }
+      /* Navbar plus compacte */
+      .navbar .container {
+        padding: 0 16px;
+      }
+      /* Hero */
+      .hero-section {
+        padding: 30px 0 60px;
+      }
+      .hero-main-title {
+        font-size: 2rem;
+      }
+      .metrics-grid-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .floating-card-satellite {
+        display: none;
+      }
+      .footer-grid-row {
+        grid-template-columns: 1fr;
+      }
+      /* Drawer mobile plein écran */
+      .mobile-drawer {
+        padding: 16px 20px 24px;
+      }
+      .mobile-drawer ul {
+        gap: 10px;
+      }
+      .mobile-drawer a {
+        font-size: 1rem;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border-light);
+      }
+      .mobile-drawer-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 18px;
+      }
+    }
+
+    /* Tablettes & Laptops moyens (1000px - 1260px) : préserve Ouvrir l'application sans overflow */
+    @media (max-width: 1260px) and (min-width: 901px) {
+      .btn-auth-nav {
+        display: none !important;
+      }
+      .nav-links {
+        gap: 12px;
+        margin-left: 12px;
+      }
+      .nav-link {
+        font-size: 0.82rem;
+      }
+      .btn-launch-app {
+        padding: 7px 14px;
+        font-size: 0.82rem;
+      }
+    }
+
+    /* Tablettes (769px - 900px) */
+    @media (max-width: 900px) and (min-width: 769px) {
+      .btn-auth-nav {
+        display: none !important;
+      }
+      .nav-links {
+        gap: 8px;
+        margin-left: 8px;
+      }
+      .nav-link {
+        font-size: 0.75rem;
+      }
+      .btn-launch-app {
+        padding: 6px 11px;
+        font-size: 0.76rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Bandeau supérieur d'accès direct -->
+  <div class="app-direct-bar">
+    <span>🏗️ Application disponible ·</span>
+    <a href="app.html">
+      Ouvrir Rapport d'Inspection Terrain
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+  </div>
+
+  <!-- Halo d'ambiance -->
+  <div class="ambient-glow"></div>
+
+  <!-- ==========================================================================
+       EN-TÊTE / NAVBAR
+       ========================================================================== -->
+  <header class="navbar">
+    <div class="container">
+      <div class="nav-inner">
+        
+        <!-- Logo SVG inline - transparent, aucun background -->
+        <a href="index.html" class="nav-brand" aria-label="ViteReport">
+          <svg class="main-header-logo" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" height="46" style="flex-shrink:0;">
+            <defs>
+              <linearGradient id="vGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#00c6ff"/>
+                <stop offset="60%" stop-color="#0072ff"/>
+                <stop offset="100%" stop-color="#1a56db"/>
+              </linearGradient>
+            </defs>
+            <path d="M10 15 L50 95 L60 75 L70 95 L110 15 L90 15 L60 68 L30 15 Z" fill="url(#vGrad)"/>
+            <rect x="68" y="8" width="34" height="42" rx="4" fill="white" opacity="0.95"/>
+            <path d="M90 8 L102 20 L90 20 Z" fill="#e2e8f0"/>
+            <rect x="74" y="25" width="20" height="2.5" rx="1.2" fill="#0072ff" opacity="0.7"/>
+            <rect x="74" y="31" width="16" height="2.5" rx="1.2" fill="#0072ff" opacity="0.5"/>
+            <rect x="74" y="37" width="18" height="2.5" rx="1.2" fill="#0072ff" opacity="0.5"/>
+          </svg>
+          <span class="brand-title" style="font-size:1.1rem; font-weight:800; letter-spacing:-0.03em;">ViteReport</span>
+        </a>
+
+        <!-- Liens de navigation -->
+        <ul class="nav-links">
+          <li><a href="#features" class="nav-link">Fonctionnalités</a></li>
+          <li><a href="#offline" class="nav-link">Hors-ligne</a></li>
+          <li><a href="#exports" class="nav-link">Exports</a></li>
+          <li><a href="#pricing" class="nav-link">Tarifs</a></li>
+          <li><a href="#faq" class="nav-link">FAQ</a></li>
+          <li><a href="#contact" class="nav-link">À propos</a></li>
+        </ul>
+
+        <!-- Actions à droite : langue | dark | Connexion | S'inscrire | Ouvrir l'app -->
+        <div class="nav-right-actions">
+          <!-- Sélecteur de langues -->
+          <div class="lang-switcher">
+            <button class="btn-lang active" data-lang="fr" title="Français">FR</button>
+            <button class="btn-lang" data-lang="ar" title="العربية">AR</button>
+            <button class="btn-lang" data-lang="en" title="English">EN</button>
+            <button class="btn-lang" data-lang="es" title="Español">ES</button>
+          </div>
+
+          <!-- Bouton Dark Mode -->
+          <button class="btn-darkmode" id="btnDarkMode" title="Mode sombre / clair" aria-label="Basculer le mode sombre">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="darkModeIcon">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </button>
+
+          <!-- Connexion (ghost) -->
+          <button class="btn-auth-nav" id="btnNavLogin">Connexion</button>
+
+          <!-- S'inscrire (secondary) -->
+          <button class="btn-auth-nav btn-auth-signup" id="btnNavSignUp">S'inscrire</button>
+
+          <!-- Ouvrir l'application (CTA principal) -->
+          <a href="app.html" class="btn-launch-app">
+            <span id="txtNavOpenApp">Ouvrir l'application</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
+
+          <button class="btn-hamburger" id="hamburgerToggle" aria-label="Menu mobile">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 8h16M4 16h16"/></svg>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Tiroir Mobile -->
+    <div class="mobile-drawer" id="mobileDrawer">
+      <ul>
+        <li><a href="#features" class="nav-link-item" id="navMobileFeatures">Fonctionnalités</a></li>
+        <li><a href="#offline" class="nav-link-item" id="navMobileOffline">Mode Hors-Ligne</a></li>
+        <li><a href="#exports" class="nav-link-item" id="navMobileExports">Export PDF / PPTX / Word</a></li>
+        <li><a href="#pricing" class="nav-link-item" id="navMobilePricing">Tarifs</a></li>
+        <li><a href="#faq" class="nav-link-item" id="navMobileFaq">FAQ</a></li>
+        <li><a href="#contact" class="nav-link-item" id="navMobileAbout">À propos</a></li>
+        <li style="display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-top:1px solid var(--border-light);">
+          <div class="lang-switcher">
+            <button class="btn-lang active" data-lang="fr">FR</button>
+            <button class="btn-lang" data-lang="ar">AR</button>
+            <button class="btn-lang" data-lang="en">EN</button>
+            <button class="btn-lang" data-lang="es">ES</button>
+          </div>
+          <button class="btn-darkmode" id="btnDarkModeMobile" title="Mode sombre / clair">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </button>
+        </li>
+        <li style="display:flex; gap:8px;">
+          <button class="btn-auth-nav" id="btnNavLoginMobile" style="flex:1;">Connexion</button>
+          <button class="btn-auth-nav btn-auth-signup" id="btnNavSignUpMobile" style="flex:1;">S'inscrire</button>
+        </li>
+        <li>
+          <a href="app.html" class="btn-launch-app" style="justify-content:center; width:100%; margin-top:8px;">
+            <span id="txtMobileOpenApp">Ouvrir l'application</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+  </header>
+
+  <!-- ==========================================================================
+       SECTION HERO : TEXTE & CAPTURE DU SITE HTTP://LOCALHOST:3000
+       ========================================================================== -->
+  <main>
+    <section class="hero-section" id="hero">
+      <div class="container">
+        
+        <div class="hero-grid">
+          
+          <!-- COLONNE GAUCHE : TITRE & VALEUR AJOUTÉE -->
+          <div class="hero-left-copy">
+            <h1 class="hero-main-title">
+              La solution moderne<br>pour vos <span>rapports</span><br>d'inspection terrain
+            </h1>
+
+            <p class="hero-description">
+              Créez vos rapports directement sur le terrain, ajoutez vos photos et observations, puis exportez un rapport professionnel en quelques clics — en <strong>PDF, PowerPoint et Word</strong>, même sans réseau.
+            </p>
+
+            <p class="hero-target-audience">
+              Conçu pour les inspecteurs, techniciens et professionnels du terrain.
+            </p>
+
+            <div class="hero-actions-row">
+              <a href="app.html" class="btn-hero-primary">
+                Créer mon premier rapport
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </a>
+              <a href="#features" class="btn-hero-secondary">
+                Voir comment ça marche
+              </a>
+            </div>
+
+            <div class="hero-proof-strip">
+              <div class="proof-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Stockage local sécurisé</span>
+              </div>
+              <div class="proof-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Multi-rapports & statuts</span>
+              </div>
+              <div class="proof-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Export PDF / PPTX / DOCX</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- COLONNE DROITE : VÉRITABLE CAPTURE DU SITE HTTP://LOCALHOST:3000 DANS UN SMARTPHONE -->
+          <div class="hero-visual-stage">
+            <div class="visual-stage-backdrop"></div>
+
+            <!-- Carte satellite flottante 1 : Infos Générales (Chantier Résidence Étoile) -->
+            <div class="floating-card-satellite sat-top-left">
+              <div class="sat-title-row">
+                <span class="sat-badge-tag">🟢 Terminé</span>
+                <span style="font-size:0.7rem; color:#64748b;">15 Oct 2026</span>
+              </div>
+              <div class="sat-site-name">Chantier Résidence Étoile</div>
+              <div class="sat-site-details">👤 Inspecteur : Jean Dupont</div>
+              <div style="font-size:0.7rem; color:#94a3b8; margin-top:3px;">📍 Zone Fondations & Sous-sol · 15 Oct 2026</div>
+            </div>
+
+            <!-- SMARTPHONE AVEC LA CAPTURE RÉELLE DU SITE HTTP://LOCALHOST:3000 -->
+            <div class="phone-mockup-frame">
+              <div class="phone-inner-screen">
+                <img 
+                  src="preview.jpg" 
+                  alt="Capture de l'application Rapport d'Inspection Terrain" 
+                  class="phone-screenshot-img"
+                  loading="eager"
+                >
+              </div>
+            </div>
+
+            <!-- Carte satellite flottante 2 : Export Multi-Formats Immédiat -->
+            <div class="floating-card-satellite sat-bottom-right">
+              <div style="font-size:0.78rem; font-weight:800; color:var(--primary-navy); display:flex; align-items:center; gap:6px;">
+                <span>⚡ Export Immédiat</span>
+                <span style="font-size:0.65rem; color:#059669; background:#dcfce7; padding:1px 5px; border-radius:3px;">Autonome</span>
+              </div>
+              <div class="format-pills-row">
+                <span class="pill-format-btn active">PDF</span>
+                <span class="pill-format-btn">PPTX</span>
+                <span class="pill-format-btn">Word</span>
+              </div>
+              <div style="font-size:0.7rem; color:#64748b; margin-top:8px;">
+                Génération en 1.2s sans serveur cloud
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==========================================================================
+       SECTION CONFIANCE / MÉTIERS DU TERRAIN
+       ========================================================================== -->
+    <section class="social-proof-bar">
+      <div class="container">
+        <p class="proof-bar-label">Conçu pour les exigences des professionnels du terrain</p>
+        <div class="proof-logos-grid">
+          <div class="proof-logo-text">🏗️ BTP & CHANTIER</div>
+          <div class="proof-logo-text">🛡️ CONTRÔLE TECHNIQUE</div>
+          <div class="proof-logo-text">⚡ ÉLECTRICITÉ & CVC</div>
+          <div class="proof-logo-text">🏢 GESTION IMMOBILIÈRE</div>
+          <div class="proof-logo-text">👷 AUDIT DE SÉCURITÉ</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================================================
+       SECTION FONCTIONNALITÉS / BENTO GRID
+       ========================================================================== -->
+    <section class="features-section" id="features">
+      <div class="container">
+        
+        <div class="section-header-center">
+          <span class="section-eyebrow">Productivité & Rigueur</span>
+          <h2 class="section-heading-big">Tout ce dont vous avez besoin sur le terrain</h2>
+          <p class="section-subheading-text">
+            Fini les saisies manuelles au bureau après une journée de chantier. Votre rapport est prêt, illustré et signé avant même de quitter les lieux.
+          </p>
+        </div>
+
+        <div class="bento-grid">
+          
+          <!-- Bloc 1 : 100% Hors-ligne (Large) -->
+          <div class="bento-card-unit col-2" id="offline">
+            <div>
+              <div class="bento-icon-container">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M1 1l22 22"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+              </div>
+              <h3 class="bento-card-title">100% Hors-Ligne & Données Privées</h3>
+              <p class="bento-card-paragraph">
+                Travaillez sereinement en sous-sol, sous une dalle en béton armé ou en pleine campagne sans réseau mobile. Toutes vos données sont stockées directement sur votre appareil, sans risque de déconnexion ni fuite de données.
+              </p>
+            </div>
+
+            <div class="step-preview-box">
+              <div class="step-node">
+                <span style="color:#059669;">✓</span>
+                <span>Zéro Dépendance Serveur</span>
+              </div>
+              <span style="color:#94a3b8;">→</span>
+              <div class="step-node">
+                <span style="color:#2563eb;">🔒</span>
+                <span>Stockage Local Sécurisé</span>
+              </div>
+              <span style="color:#94a3b8;">→</span>
+              <div class="step-node">
+                <span style="color:#7c3aed;">⚡</span>
+                <span>Disponibilité Immédiate</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bloc 2 : Photos & Horodatage -->
+          <div class="bento-card-unit">
+            <div>
+              <div class="bento-icon-container">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              </div>
+              <h3 class="bento-card-title">Photos Horodatées</h3>
+              <p class="bento-card-paragraph">
+                Prenez des photos directement depuis l'application avec horodatage automatique et compression optimisée pour préserver la qualité sans alourdir vos documents.
+              </p>
+            </div>
+            <div style="font-size:0.8rem; font-weight:700; color:#059669;">
+              📷 Horodatage certifié minute par minute
+            </div>
+          </div>
+
+          <!-- Bloc 3 : Multi-Rapports -->
+          <div class="bento-card-unit">
+            <div>
+              <div class="bento-icon-container">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              </div>
+              <h3 class="bento-card-title">Écran « Mes Rapports »</h3>
+              <p class="bento-card-paragraph">
+                Gérez plusieurs chantiers en parallèle. Retrouvez vos rapports par recherche rapide, filtrez par statut (Brouillon, Terminé, Exporté) et dupliquez les rapports récurrents en 1 clic.
+              </p>
+            </div>
+            <div style="font-size:0.8rem; font-weight:700; color:#2563eb;">
+              📁 Recherche instantanée & duplication
+            </div>
+          </div>
+
+          <!-- Bloc 4 : Export Multi-Formats (Large) -->
+          <div class="bento-card-unit col-2" id="exports">
+            <div>
+              <div class="bento-icon-container">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </div>
+              <h3 class="bento-card-title">Export Triple Format : PDF, PowerPoint & Word</h3>
+              <p class="bento-card-paragraph">
+                Adaptez votre livrable selon les exigences de vos clients : un <strong>PDF</strong> prêt à imprimer pour la signature, une <strong>présentation PPTX</strong> pour les réunions de chantier, ou un document <strong>Word</strong> éditable pour vos dossiers d'audit complets.
+              </p>
+            </div>
+
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <span style="font-size:0.82rem; font-weight:700; padding:6px 14px; background:#eff6ff; color:#1e40af; border-radius:9999px;">📄 PDF Haute Définition</span>
+              <span style="font-size:0.82rem; font-weight:700; padding:6px 14px; background:#fff7ed; color:#c2410c; border-radius:9999px;">📊 PowerPoint (.pptx)</span>
+              <span style="font-size:0.82rem; font-weight:700; padding:6px 14px; background:#f0fdf4; color:#15803d; border-radius:9999px;">📝 Microsoft Word (.docx)</span>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==========================================================================
+       SECTION CHIFFRES CLÉS
+       ========================================================================== */
+    <section class="metrics-strip">
+      <div class="container">
+        <div class="metrics-grid-row">
+          <div>
+            <div class="metric-value-huge">100%</div>
+            <div class="metric-label-desc">Autonomie Hors-Ligne</div>
+          </div>
+          <div>
+            <div class="metric-value-huge">&lt; 2s</div>
+            <div class="metric-label-desc">Génération des Rapports</div>
+          </div>
+          <div>
+            <div class="metric-value-huge">3</div>
+            <div class="metric-label-desc">Formats (PDF, PPTX, DOCX)</div>
+          </div>
+          <div>
+            <div class="metric-value-huge">0€</div>
+            <div class="metric-label-desc">Aucun Abonnement Obligatoire</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ==========================================================================
+       SECTION FAQ
+       ========================================================================== -->
+    <section class="faq-section">
+      <div class="container">
+        <div class="section-header-center">
+          <span class="section-eyebrow">Aide & Questions</span>
+          <h2 class="section-heading-big">Questions fréquemment posées</h2>
+        </div>
+
+        <div class="faq-wrap-list">
+          <div class="faq-accordion-item active">
+            <div class="faq-question-btn">
+              <span>L'application fonctionne-t-elle réellement sans connexion internet ?</span>
+              <span class="faq-icon-cross">+</span>
+            </div>
+            <div class="faq-answer-block">
+              Oui, à 100%. L'application utilise la technologie Offline-First. Toutes les données (textes, photos, métadonnées de chantier) sont conservées directement dans votre navigateur. Vous pouvez générer et télécharger vos rapports PDF, PPTX et Word sans aucun signal réseau.
+            </div>
+          </div>
+
+          <div class="faq-accordion-item">
+            <div class="faq-question-btn">
+              <span>Comment les photos de chantier sont-elles traitées ?</span>
+              <span class="faq-icon-cross">+</span>
+            </div>
+            <div class="faq-answer-block">
+              Les photos sont importées ou prises directement depuis votre caméra de smartphone. Elles sont automatiquement horodatées avec l'heure exacte et optimisées pour que le document final reste léger et rapide à envoyer par email.
+            </div>
+          </div>
+
+          <div class="faq-accordion-item">
+            <div class="faq-question-btn">
+              <span>Puis-je modifier un rapport après l'avoir exporté ?</span>
+              <span class="faq-icon-cross">+</span>
+            </div>
+            <div class="faq-answer-block">
+              Absolument. Vos rapports restent enregistrés dans votre liste « Mes rapports ». Vous pouvez les rouvrir, ajuster les remarques ou ajouter de nouvelles étapes à tout moment avant un nouvel export.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================================================
+       BANNIÈRE FINALE CTA
+       ========================================================================== -->
+    <section class="cta-banner-container">
+      <div class="container">
+        <div class="cta-banner-box">
+          <h2 class="cta-banner-heading">Prêt à simplifier vos inspections de chantier ?</h2>
+          <p class="cta-banner-desc">
+            Testez dès aujourd'hui l'application d'inspection terrain directement dans votre navigateur, sans inscription ni installation complexe.
+          </p>
+          <a href="app.html" class="btn-cta-launch">
+            Ouvrir l'application maintenant
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ==========================================================================
+       PIED DE PAGE (FOOTER)
+       ========================================================================== -->
+  <footer class="page-footer">
+    <div class="container">
+      <div class="footer-grid-row">
+        <div>
+          <a href="index.html" class="nav-brand" style="margin-bottom:12px; display:inline-flex; align-items:center; gap:12px;">
+            <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" style="height:44px; width:auto;">
+              <defs>
+                <linearGradient id="vGradFooter" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#00c6ff"/>
+                  <stop offset="60%" stop-color="#0072ff"/>
+                  <stop offset="100%" stop-color="#1a56db"/>
+                </linearGradient>
+              </defs>
+              <path d="M10 15 L50 95 L60 75 L70 95 L110 15 L90 15 L60 68 L30 15 Z" fill="url(#vGradFooter)"/>
+              <rect x="68" y="8" width="34" height="42" rx="4" fill="white" opacity="0.95"/>
+              <path d="M90 8 L102 20 L90 20 Z" fill="#e2e8f0"/>
+              <rect x="74" y="25" width="20" height="2.5" rx="1.2" fill="#0072ff" opacity="0.7"/>
+              <rect x="74" y="31" width="16" height="2.5" rx="1.2" fill="#0072ff" opacity="0.5"/>
+              <rect x="74" y="37" width="18" height="2.5" rx="1.2" fill="#0072ff" opacity="0.5"/>
+            </svg>
+            <span class="brand-title" style="font-size:1.4rem;">ViteReport</span>
+          </a>
+          <p class="footer-desc-text">
+            Solution mobile autonome pour professionnels du BTP, auditeurs techniques et conducteurs de travaux.
+          </p>
+        </div>
+
+        <div>
+          <h4 class="footer-heading-col">Application</h4>
+          <ul class="footer-links-group">
+            <li><a href="app.html" class="footer-item-link">Ouvrir l'application</a></li>
+            <li><a href="#features" class="footer-item-link">Gestion des étapes</a></li>
+            <li><a href="#offline" class="footer-item-link">Mode Hors-Ligne</a></li>
+            <li><a href="#exports" class="footer-item-link">Export PDF & PPTX</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="footer-heading-col">Formats</h4>
+          <ul class="footer-links-group">
+            <li><a href="#exports" class="footer-item-link">Rapport PDF Pro</a></li>
+            <li><a href="#exports" class="footer-item-link">Présentation PowerPoint</a></li>
+            <li><a href="#exports" class="footer-item-link">Document Word (.docx)</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="footer-heading-col">Support & Aide</h4>
+          <ul class="footer-links-group">
+            <li><a href="#features" class="footer-item-link">Guide d'utilisation</a></li>
+            <li><a href="app.html" class="footer-item-link">Démarrage Rapide</a></li>
+            <li><a href="app.html" class="footer-item-link">Mes Rapports</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom-bar">
+        <span>© 2026 ViteReport (vitereport.com). Tous droits réservés.</span>
+        <span>🟢 100% Opérationnel Hors-Ligne</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ==========================================================================
+       MODAL DE CONNEXION / INSCRIPTION (AUTH MODAL)
+       ========================================================================== -->
+  <div class="auth-modal-backdrop" id="authModal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="auth-modal-card">
+      <button class="auth-close-btn" id="btnCloseAuth" aria-label="Fermer la fenêtre">✕</button>
+      
+      <div class="auth-tabs-row">
+        <button class="auth-tab-btn active" id="tabLogin" type="button">Connexion</button>
+        <button class="auth-tab-btn" id="tabSignUp" type="button">Inscription</button>
+      </div>
+      
+      <!-- Formulaire Connexion (Login) -->
+      <form class="auth-form" id="formLogin">
+        <div class="auth-field">
+          <label id="lblLoginEmail">Email professionnel</label>
+          <input type="email" required placeholder="nom@entreprise.com" class="auth-input">
+        </div>
+        <div class="auth-field">
+          <label id="lblLoginPassword">Mot de passe</label>
+          <input type="password" required placeholder="••••••••" class="auth-input">
+        </div>
+        <div class="auth-extras-row">
+          <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+            <input type="checkbox" checked style="accent-color:#2563eb;"> 
+            <span id="lblRememberMe">Se souvenir de moi</span>
+          </label>
+          <a href="javascript:void(0)" id="lblForgotPass" style="color:#2563eb; font-weight:600;">Mot de passe oublié ?</a>
+        </div>
+        <button type="submit" class="btn-auth-submit" id="btnSubmitLogin">Se connecter</button>
+        <div class="auth-divider"><span id="lblOrDivider1">ou</span></div>
+        <a href="app.html" class="btn-auth-guest" id="btnGuestAccess1">
+          ⚡ Accéder directement en 100% Hors-Ligne (Sans compte)
+        </a>
+      </form>
+
+      <!-- Formulaire Inscription (Sign Up) -->
+      <form class="auth-form" id="formSignUp" style="display:none;">
+        <div class="auth-field">
+          <label id="lblSignUpName">Nom complet & Entreprise</label>
+          <input type="text" required placeholder="Jean Dupont (Entreprise BTP)" class="auth-input">
+        </div>
+        <div class="auth-field">
+          <label id="lblSignUpEmail">Email professionnel</label>
+          <input type="email" required placeholder="nom@entreprise.com" class="auth-input">
+        </div>
+        <div class="auth-field">
+          <label id="lblSignUpPassword">Mot de passe (8+ caractères)</label>
+          <input type="password" required minlength="8" placeholder="••••••••" class="auth-input">
+        </div>
+        <button type="submit" class="btn-auth-submit" id="btnSubmitSignUp">Créer mon compte</button>
+        <div class="auth-divider"><span id="lblOrDivider2">ou</span></div>
+        <a href="app.html" class="btn-auth-guest" id="btnGuestAccess2">
+          ⚡ Accéder directement en 100% Hors-Ligne (Sans compte)
+        </a>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       SCRIPTS : TRADUCTIONS, DARK MODE & AUTHENTIFICATION
+       ========================================================================== -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // 1. Menu Mobile Toggle
+      const hamburgerToggle = document.getElementById('hamburgerToggle');
+      const mobileDrawer = document.getElementById('mobileDrawer');
+      if (hamburgerToggle && mobileDrawer) {
+        hamburgerToggle.addEventListener('click', () => {
+          mobileDrawer.classList.toggle('open');
+        });
+      }
+
+      // 2. FAQ Accordéon
+      const faqItems = document.querySelectorAll('.faq-accordion-item');
+      faqItems.forEach(item => {
+        const question = item.querySelector('.faq-question-btn');
+        if (question) {
+          question.addEventListener('click', () => {
+            const wasActive = item.classList.contains('active');
+            faqItems.forEach(fi => fi.classList.remove('active'));
+            if (!wasActive) {
+              item.classList.add('active');
+            }
+          });
+        }
+      });
+
+      // ================================================================
+      // 3. DICTIONNAIRE DE TRADUCTIONS (FR, AR, EN, ES)
+      // ================================================================
+      const translations = {
+        fr: {
+          appDirect: "🏗️ Application active en direct :",
+          appDirectLink: "Ouvrir Rapport d'Inspection Terrain",
+          brandTitle: "ViteReport",
+          brandBadge: "● 100% Hors-Ligne",
+          navFeatures: "Fonctionnalités",
+          navOffline: "Hors-ligne",
+          navExports: "Exports",
+          navPricing: "Tarifs",
+          navFaq: "FAQ",
+          navAbout: "À propos",
+          navLogin: "Connexion",
+          navSignUp: "S'inscrire",
+          navOpenApp: "Ouvrir l'application",
+          heroBadge: "100% Hors-Ligne · Zéro Connexion Requise",
+          heroTitle: "La solution moderne pour vos <span>rapports d'inspection</span> terrain",
+          heroDesc: "Créez, photographiez et documentez chaque étape de vos chantiers en temps réel. Générez et téléchargez instantanément vos rapports professionnels en <strong>PDF, PowerPoint et Word</strong>, même en zone blanche sans réseau.",
+          heroBtnCreate: "Créer un rapport maintenant",
+          heroBtnDiscover: "Découvrir les fonctionnalités",
+          proofLocal: "Stockage local sécurisé",
+          proofMulti: "Multi-rapports & statuts",
+          proofFormats: "Export PDF / PPTX / DOCX",
+          satSiteName: "Chantier Résidence Étoile",
+          satSiteInspector: "👤 Inspecteur : Jean Dupont",
+          satSiteLocation: "📍 Zone Fondations & Sous-sol",
+          satExportTitle: "⚡ Export Immédiat",
+          satExportBadge: "Autonome",
+          satExportDesc: "Génération en 1.2s sans serveur cloud",
+          proofBarLabel: "Conçu pour les exigences des professionnels du terrain",
+          featuresEyebrow: "Productivité & Rigueur",
+          featuresHeading: "Tout ce dont vous avez besoin sur le terrain",
+          featuresSubheading: "Fini les saisies manuelles au bureau après une journée de chantier. Votre rapport est prêt, illustré et signé avant même de quitter les lieux.",
+          feat1Title: "100% Hors-Ligne & Données Privées",
+          feat1Desc: "Travaillez sereinement en sous-sol, sous une dalle en béton armé ou en pleine campagne sans réseau mobile. Toutes vos données sont stockées directement sur votre appareil, sans risque de déconnexion ni fuite de données.",
+          feat2Title: "Photos Horodatées",
+          feat2Desc: "Prenez des photos directement depuis l'application avec horodatage automatique et compression optimisée pour préserver la qualité sans alourdir vos documents.",
+          feat3Title: "Écran « Mes Rapports »",
+          feat3Desc: "Gérez plusieurs chantiers en parallèle. Retrouvez vos rapports par recherche rapide, filtrez par statut (Brouillon, Terminé, Exporté) et dupliquez les rapports récurrents en 1 clic.",
+          feat4Title: "Export Triple Format : PDF, PowerPoint & Word",
+          feat4Desc: "Adaptez votre livrable selon les exigences de vos clients : un PDF prêt à imprimer pour la signature, une présentation PPTX pour les réunions de chantier, ou un document Word éditable.",
+          metrics1: "Autonomie Hors-Ligne",
+          metrics2: "Génération des Rapports",
+          metrics3: "Formats (PDF, PPTX, DOCX)",
+          metrics4: "Aucun Abonnement Obligatoire",
+          faqEyebrow: "Aide & Questions",
+          faqHeading: "Questions fréquemment posées",
+          ctaHeading: "Prêt à simplifier vos inspections de chantier ?",
+          ctaDesc: "Testez dès aujourd'hui l'application d'inspection terrain directement dans votre navigateur, sans inscription ni installation complexe.",
+          ctaBtn: "Ouvrir l'application maintenant",
+          authLoginTitle: "Connexion",
+          authSignUpTitle: "Inscription",
+          authLoginBtn: "Se connecter",
+          authSignUpBtn: "Créer mon compte",
+          authGuestBtn: "⚡ Accéder directement en 100% Hors-Ligne (Sans compte)",
+          authForgot: "Mot de passe oublié ?"
+        },
+        ar: {
+          appDirect: "🏗️ التطبيق الميداني المباشر :",
+          appDirectLink: "فتح تطبيق ViteReport للتفتيش",
+          brandTitle: "ViteReport",
+          brandBadge: "● 100% بدون إنترنت",
+          navFeatures: "المميزات",
+          navOffline: "بدون إنترنت",
+          navExports: "التصدير",
+          navPricing: "الأسعار",
+          navFaq: "الأسئلة الشائعة",
+          navAbout: "من نحن",
+          navLogin: "دخول",
+          navSignUp: "حساب جديد",
+          navOpenApp: "فتح التطبيق",
+          heroBadge: "100% بدون إنترنت · لا يلزم أي اتصال شبكة",
+          heroTitle: "الحل العصري لإنشاء <span>تقارير التفتيش</span> الميدانية",
+          heroDesc: "أنشئ ووثّق وصوّر كل مرحلة في موقع العمل في الوقت الفعلي. قم بإنشاء وتنزيل تقاريرك الاحترافية بصيغ <strong>PDF وPowerPoint وWord</strong> فوراً، حتى في المناطق المعزولة بدون إنترنت.",
+          heroBtnCreate: "إنشاء تقرير الآن",
+          heroBtnDiscover: "استكشاف المميزات",
+          proofLocal: "تخزين محلي آمن ومحمي",
+          proofMulti: "إدارة تقارير وحالات متعددة",
+          proofFormats: "تصدير فوري PDF / PPTX / DOCX",
+          satSiteName: "مشروع إقامة النجمة",
+          satSiteInspector: "👤 المفتش : جان دوبونت",
+          satSiteLocation: "📍 منطقة الأساسات والقبو",
+          satExportTitle: "⚡ تصدير فوري",
+          satExportBadge: "مستقل",
+          satExportDesc: "توليد الملف خلال 1.2 ثانية بدون خادم",
+          proofBarLabel: "مصمم لتلبية متطلبات مهندسي وخبراء الميدان",
+          featuresEyebrow: "الإنتاجية والدقة",
+          featuresHeading: "كل ما تحتاجه في موقع العمل الميداني",
+          featuresSubheading: "لا مزيد من إدخال البيانات يدوياً في المكتب بعد يوم عمل شاق. تقريرك جاهز وموثق بالصور وموقع قبل مغادرة الموقع.",
+          feat1Title: "100% بدون إنترنت وحماية تامة للبيانات",
+          feat1Desc: "اعمل بكل ثقة في الطوابق السفلية، تحت الخرسانة المسلحة أو في الأماكن النائية. جميع بياناتك وصورك محفوظة محلياً على جهازك دون مخاطر تسريب أو انقطاع.",
+          feat2Title: "صور معتمدة بالوقت والتاريخ",
+          feat2Desc: "التقط الصور مباشرة من الكاميرا مع ختم التاريخ والوقت تلقائياً وضغط ذكي يحافظ على جودة الصورة مع خفة حجم التقرير النهائي.",
+          feat3Title: "شاشة « تقاريري » لإدارة المشاريع",
+          feat3Desc: "أدر عدة مشاريع بناء في وقت واحد. ابحث بسرعة، وصنف التقارير حسب حالتها (مسودة، مكتمل، تم التصدير) وانسخ النماذج بضغطة واحدة.",
+          feat4Title: "تصدير بثلاث صيغ : PDF و PowerPoint و Word",
+          feat4Desc: "قدّم تقريرك بالصيغة المناسبة : PDF عالي الدقة للطباعة والتوقيع، أو PPTX لعرض اجتماعات الورشة، أو Word للتعديل لاحقاً.",
+          metrics1: "استقلالية بدون إنترنت",
+          metrics2: "سرعة توليد التقرير",
+          metrics3: "صيغ متقدمة (PDF, PPTX, DOCX)",
+          metrics4: "لا يلزم أي اشتراك إجباري",
+          faqEyebrow: "المساعدة والأسئلة",
+          faqHeading: "الأسئلة الشائعة",
+          ctaHeading: "هل أنت مستعد لتسهيل عمليات التفتيش؟",
+          ctaDesc: "جرّب تطبيق التفتيش الميداني الآن مباشرة في متصفحك دون الحاجة لتسجيل أو تثبيت معقد.",
+          ctaBtn: "فتح التطبيق الميداني الآن",
+          authLoginTitle: "تسجيل الدخول",
+          authSignUpTitle: "إنشاء حساب جديد",
+          authLoginBtn: "دخول",
+          authSignUpBtn: "تسجيل حساب",
+          authGuestBtn: "⚡ الدخول المباشر بدون حساب (وضع غير متصل)",
+          authForgot: "نسيت كلمة المرور؟"
+        },
+        en: {
+          appDirect: "🏗️ Live inspection tool running at:",
+          appDirectLink: "Open Field Inspection Report",
+          brandTitle: "ViteReport",
+          brandBadge: "● 100% Offline",
+          navFeatures: "Features",
+          navOffline: "Offline",
+          navExports: "Exports",
+          navPricing: "Pricing",
+          navFaq: "FAQ",
+          navAbout: "About",
+          navLogin: "Log In",
+          navSignUp: "Sign Up",
+          navOpenApp: "Open App",
+          heroBadge: "100% Offline · Zero Network Connection Required",
+          heroTitle: "The modern platform for your <span>field inspection reports</span>",
+          heroDesc: "Create, photograph, and document every stage of your job sites in real-time. Instantly generate and download professional reports in <strong>PDF, PowerPoint, and Word</strong>, even in remote areas without signal.",
+          heroBtnCreate: "Create Report Now",
+          heroBtnDiscover: "Explore Features",
+          proofLocal: "Secure Local Storage",
+          proofMulti: "Multi-Reports & Statuses",
+          proofFormats: "PDF / PPTX / DOCX Export",
+          satSiteName: "Star Residence Project",
+          satSiteInspector: "👤 Inspector: John Doe",
+          satSiteLocation: "📍 Foundation & Basement Area",
+          satExportTitle: "⚡ Instant Export",
+          satExportBadge: "Client-Side",
+          satExportDesc: "Generated in 1.2s without cloud server",
+          proofBarLabel: "Engineered for field engineers, auditors and site managers",
+          featuresEyebrow: "Speed & Reliability",
+          featuresHeading: "Everything you need directly on site",
+          featuresSubheading: "No more late hours spent retyping notes back at the office. Your report is complete, illustrated with timestamped photos, and signed before leaving the site.",
+          feat1Title: "100% Offline & Private Data",
+          feat1Desc: "Work seamlessly in basements, under reinforced concrete, or in remote countryside without cell reception. All data stays securely on your device with zero cloud leaks.",
+          feat2Title: "Timestamped Photos",
+          feat2Desc: "Capture photos directly with camera timestamping and smart compression to maintain pristine clarity without bloating PDF file sizes.",
+          feat3Title: "« My Reports » Dashboard",
+          feat3Desc: "Manage multiple projects in parallel. Instantly search, filter by status (Draft, Completed, Exported), and duplicate recurring report templates with one click.",
+          feat4Title: "Triple Format Export: PDF, PowerPoint & Word",
+          feat4Desc: "Tailor your deliverables: print-ready PDF for official approval, PPTX presentation slides for project meetings, or editable Word documents.",
+          metrics1: "Offline Autonomy",
+          metrics2: "Report Generation Speed",
+          metrics3: "Formats (PDF, PPTX, DOCX)",
+          metrics4: "Zero Mandatory Subscription",
+          faqEyebrow: "Help & FAQ",
+          faqHeading: "Frequently Asked Questions",
+          ctaHeading: "Ready to streamline your site inspections?",
+          ctaDesc: "Test our field inspection tool right now in your browser without registration or complex setup.",
+          ctaBtn: "Launch Application Now",
+          authLoginTitle: "Log In",
+          authSignUpTitle: "Create Account",
+          authLoginBtn: "Log In",
+          authSignUpBtn: "Create My Account",
+          authGuestBtn: "⚡ Use 100% Offline (No Account Needed)",
+          authForgot: "Forgot password?"
+        },
+        es: {
+          appDirect: "🏗️ Aplicación activa en directo :",
+          appDirectLink: "Abrir Informe de Inspección",
+          brandTitle: "ViteReport",
+          brandBadge: "● 100% Sin Conexión",
+          navFeatures: "Características",
+          navOffline: "Sin Conexión",
+          navExports: "Exports",
+          navPricing: "Tarifas",
+          navFaq: "Preguntas",
+          navAbout: "Acerca de",
+          navLogin: "Iniciar sesión",
+          navSignUp: "Registrarse",
+          navOpenApp: "Abrir aplicación",
+          heroBadge: "100% Sin Conexión · Cero Red Requerida",
+          heroTitle: "La solución moderna para sus <span>informes de inspección</span> en obra",
+          heroDesc: "Cree, fotografíe y documente cada etapa de sus obras en tiempo real. Genere y descargue al instante informes profesionales en <strong>PDF, PowerPoint y Word</strong>, incluso en zonas remotas sin cobertura.",
+          heroBtnCreate: "Crear un informe ahora",
+          heroBtnDiscover: "Descubrir características",
+          proofLocal: "Almacenamiento local seguro",
+          proofMulti: "Múltiples informes y estados",
+          proofFormats: "Exportación PDF / PPTX / DOCX",
+          satSiteName: "Obra Residencia Estrella",
+          satSiteInspector: "👤 Inspector: Juan Pérez",
+          satSiteLocation: "📍 Zona Cimentaciones y Sótano",
+          satExportTitle: "⚡ Exportación Inmediata",
+          satExportBadge: "Autónomo",
+          satExportDesc: "Generación en 1.2s sin servidor",
+          proofBarLabel: "Diseñado para profesionales de la construcción y auditoría",
+          featuresEyebrow: "Productividad y Rigor",
+          featuresHeading: "Todo lo que necesita directamente en obra",
+          featuresSubheading: "Olvídese de transcribir notas en la oficina al final del día. Su informe está listo, con fotos fechadas y firmado antes de salir de la obra.",
+          feat1Title: "100% Sin Conexión y Datos Privados",
+          feat1Desc: "Trabaje con total tranquilidad en sótanos o zonas rurales sin cobertura móvil. Todos los datos permanecen seguros en su dispositivo.",
+          feat2Title: "Fotos con Fecha y Hora",
+          feat2Desc: "Tome fotos directamente desde la cámara con registro temporal automático y compresión optimizada para mantener la ligereza del archivo.",
+          feat3Title: "Panel « Mis Informes »",
+          feat3Desc: "Gestione múltiples obras simultáneamente. Busque al instante, filtre por estado (Borrador, Terminado, Exportado) y duplique informes con un clic.",
+          feat4Title: "Triple Formato: PDF, PowerPoint y Word",
+          feat4Desc: "Adapte su entrega: PDF listo para firmar, diapositivas PPTX para reuniones de obra, o Word editable para informes técnicos.",
+          metrics1: "Autonomía Sin Conexión",
+          metrics2: "Generación Ultra-Rápida",
+          metrics3: "Formatos (PDF, PPTX, DOCX)",
+          metrics4: "Sin Suscripción Obligatoria",
+          faqEyebrow: "Ayuda y Preguntas",
+          faqHeading: "Preguntas Frecuentes",
+          ctaHeading: "¿Listo para optimizar sus inspecciones de obra?",
+          ctaDesc: "Pruebe hoy mismo la aplicación de inspección en su navegador sin registro ni instalaciones complejas.",
+          ctaBtn: "Abrir la aplicación ahora",
+          authLoginTitle: "Iniciar Sesión",
+          authSignUpTitle: "Registrarse",
+          authLoginBtn: "Iniciar sesión",
+          authSignUpBtn: "Crear mi cuenta",
+          authGuestBtn: "⚡ Usar 100% Sin Conexión (Sin cuenta)",
+          authForgot: "¿Olvidó su contraseña?"
+        }
+      };
+
+      // ================================================================
+      // GESTIONNAIRE DE LANGUES
+      // ================================================================
+      let currentLang = localStorage.getItem('app_lang') || 'fr';
+
+      function applyLanguage(lang) {
+        if (!translations[lang]) lang = 'fr';
+        currentLang = lang;
+        const t = translations[lang];
+
+        // Direction RTL pour l'arabe
+        if (lang === 'ar') {
+          document.documentElement.setAttribute('dir', 'rtl');
+          document.documentElement.setAttribute('lang', 'ar');
+        } else {
+          document.documentElement.setAttribute('dir', 'ltr');
+          document.documentElement.setAttribute('lang', lang);
+        }
+
+        // Mise à jour des boutons de langue actifs
+        document.querySelectorAll('.btn-lang').forEach(btn => {
+          btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
+        });
+
+        // Mise à jour des éléments textuels
+        const navBrandTitle = document.querySelector('.brand-title');
+        if (navBrandTitle) navBrandTitle.textContent = t.brandTitle;
+
+        const navBrandBadge = document.querySelector('.brand-subtitle-badge');
+        if (navBrandBadge) navBrandBadge.textContent = t.brandBadge;
+
+        const txtNavOpenApp = document.getElementById('txtNavOpenApp');
+        if (txtNavOpenApp) txtNavOpenApp.textContent = t.navOpenApp;
+
+        const txtMobileOpenApp = document.getElementById('txtMobileOpenApp');
+        if (txtMobileOpenApp) txtMobileOpenApp.textContent = t.navOpenApp;
+
+        const navLinks = document.querySelectorAll('.nav-links .nav-link');
+        if (navLinks.length >= 6) {
+          navLinks[0].textContent = t.navFeatures;
+          navLinks[1].textContent = t.navOffline;
+          navLinks[2].textContent = t.navExports;
+          navLinks[3].textContent = t.navPricing;
+          navLinks[4].textContent = t.navFaq;
+          navLinks[5].textContent = t.navAbout;
+        } else if (navLinks.length >= 3) {
+          navLinks[0].textContent = t.navFeatures;
+          navLinks[1].textContent = t.navOffline;
+          navLinks[2].textContent = t.navExports;
+        }
+
+        const navMobileFeatures = document.getElementById('navMobileFeatures');
+        if (navMobileFeatures) navMobileFeatures.textContent = t.navFeatures;
+        const navMobileOffline = document.getElementById('navMobileOffline');
+        if (navMobileOffline) navMobileOffline.textContent = t.navOffline;
+        const navMobileExports = document.getElementById('navMobileExports');
+        if (navMobileExports) navMobileExports.textContent = t.navExports;
+        const navMobilePricing = document.getElementById('navMobilePricing');
+        if (navMobilePricing) navMobilePricing.textContent = t.navPricing;
+        const navMobileFaq = document.getElementById('navMobileFaq');
+        if (navMobileFaq) navMobileFaq.textContent = t.navFaq;
+        const navMobileAbout = document.getElementById('navMobileAbout');
+        if (navMobileAbout) navMobileAbout.textContent = t.navAbout;
+
+        const btnNavLogin = document.getElementById('btnNavLogin');
+        if (btnNavLogin) btnNavLogin.textContent = t.navLogin;
+        const btnNavLoginMobile = document.getElementById('btnNavLoginMobile');
+        if (btnNavLoginMobile) btnNavLoginMobile.textContent = t.navLogin;
+
+        const btnNavSignUp = document.getElementById('btnNavSignUp');
+        if (btnNavSignUp) btnNavSignUp.textContent = t.navSignUp;
+        const btnNavSignUpMobile = document.getElementById('btnNavSignUpMobile');
+        if (btnNavSignUpMobile) btnNavSignUpMobile.textContent = t.navSignUp;
+
+        // Hero texts
+        const pillOffline = document.querySelector('.pill-status-offline span:last-child');
+        if (pillOffline) pillOffline.textContent = t.heroBadge;
+
+        const heroTitle = document.querySelector('.hero-main-title');
+        if (heroTitle) heroTitle.innerHTML = t.heroTitle;
+
+        const heroDesc = document.querySelector('.hero-description');
+        if (heroDesc) heroDesc.innerHTML = t.heroDesc;
+
+        const btnHeroCreate = document.querySelector('.btn-hero-primary');
+        if (btnHeroCreate) {
+          btnHeroCreate.innerHTML = `${t.heroBtnCreate} <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px;"><path d="M5 12h14M12 5l7 7-7 7"/></svg>`;
+        }
+
+        const btnHeroDiscover = document.querySelector('.btn-hero-secondary');
+        if (btnHeroDiscover) btnHeroDiscover.textContent = t.heroBtnDiscover;
+
+        const proofItems = document.querySelectorAll('.hero-proof-strip .proof-item span');
+        if (proofItems.length >= 3) {
+          proofItems[0].textContent = t.proofLocal;
+          proofItems[1].textContent = t.proofMulti;
+          proofItems[2].textContent = t.proofFormats;
+        }
+
+        // Cartes satellites
+        const satSiteName = document.querySelector('.sat-site-name');
+        if (satSiteName) satSiteName.textContent = t.satSiteName;
+        const satSiteDetails = document.querySelector('.sat-site-details');
+        if (satSiteDetails) satSiteDetails.textContent = t.satSiteInspector;
+
+        // Features
+        const eyebrow = document.querySelector('.section-header-center .section-eyebrow');
+        if (eyebrow) eyebrow.textContent = t.featuresEyebrow;
+        const heading = document.querySelector('.section-header-center .section-heading-big');
+        if (heading) heading.textContent = t.featuresHeading;
+        const subheading = document.querySelector('.section-header-center .section-subheading-text');
+        if (subheading) subheading.textContent = t.featuresSubheading;
+
+        const bentoTitles = document.querySelectorAll('.bento-card-title');
+        const bentoDescs = document.querySelectorAll('.bento-card-paragraph');
+        if (bentoTitles.length >= 4 && bentoDescs.length >= 4) {
+          bentoTitles[0].textContent = t.feat1Title;
+          bentoDescs[0].textContent = t.feat1Desc;
+          bentoTitles[1].textContent = t.feat2Title;
+          bentoDescs[1].textContent = t.feat2Desc;
+          bentoTitles[2].textContent = t.feat3Title;
+          bentoDescs[2].textContent = t.feat3Desc;
+          bentoTitles[3].textContent = t.feat4Title;
+          bentoDescs[3].textContent = t.feat4Desc;
+        }
+
+        // Metrics
+        const metricLabels = document.querySelectorAll('.metric-label-desc');
+        if (metricLabels.length >= 4) {
+          metricLabels[0].textContent = t.metrics1;
+          metricLabels[1].textContent = t.metrics2;
+          metricLabels[2].textContent = t.metrics3;
+          metricLabels[3].textContent = t.metrics4;
+        }
+
+        // CTA Banner
+        const ctaHeading = document.querySelector('.cta-banner-heading');
+        if (ctaHeading) ctaHeading.textContent = t.ctaHeading;
+        const ctaDesc = document.querySelector('.cta-banner-desc');
+        if (ctaDesc) ctaDesc.textContent = t.ctaDesc;
+        const btnCtaLaunch = document.querySelector('.btn-cta-launch');
+        if (btnCtaLaunch) {
+          btnCtaLaunch.innerHTML = `${t.ctaBtn} <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>`;
+        }
+
+        // Auth modal
+        const tabLogin = document.getElementById('tabLogin');
+        if (tabLogin) tabLogin.textContent = t.authLoginTitle;
+        const tabSignUp = document.getElementById('tabSignUp');
+        if (tabSignUp) tabSignUp.textContent = t.authSignUpTitle;
+        const btnSubmitLogin = document.getElementById('btnSubmitLogin');
+        if (btnSubmitLogin) btnSubmitLogin.textContent = t.authLoginBtn;
+        const btnSubmitSignUp = document.getElementById('btnSubmitSignUp');
+        if (btnSubmitSignUp) btnSubmitSignUp.textContent = t.authSignUpBtn;
+        const btnGuest1 = document.getElementById('btnGuestAccess1');
+        if (btnGuest1) btnGuest1.textContent = t.authGuestBtn;
+        const btnGuest2 = document.getElementById('btnGuestAccess2');
+        if (btnGuest2) btnGuest2.textContent = t.authGuestBtn;
+        const lblForgot = document.getElementById('lblForgotPass');
+        if (lblForgot) lblForgot.textContent = t.authForgot;
+      }
+
+      // Écouteurs sur les boutons de langues
+      document.querySelectorAll('.btn-lang').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const lang = btn.getAttribute('data-lang');
+          localStorage.setItem('app_lang', lang);
+          applyLanguage(lang);
+        });
+      });
+
+      // Application de la langue sauvegardée au chargement
+      applyLanguage(currentLang);
+
+
+      // ================================================================
+      // 4. GESTION DU MODE SOMBRE / CLAIR (DARK MODE)
+      // ================================================================
+      const isDarkModeSaved = localStorage.getItem('app_dark_mode') === 'true' || localStorage.getItem('app_dark') === '1';
+      const darkModeIconSvg = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>`;
+      const lightModeIconSvg = `<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>`;
+
+      function setDarkMode(enabled) {
+        document.body.classList.toggle('dark-mode', enabled);
+        localStorage.setItem('app_dark_mode', enabled ? 'true' : 'false');
+        localStorage.setItem('app_dark', enabled ? '1' : '0');
+        
+        // Mise à jour de l'icône
+        const icons = document.querySelectorAll('#darkModeIcon, #btnDarkModeMobile svg');
+        icons.forEach(icon => {
+          icon.innerHTML = enabled ? lightModeIconSvg : darkModeIconSvg;
+        });
+      }
+
+      // Initialisation
+      if (isDarkModeSaved) {
+        setDarkMode(true);
+      }
+
+      const btnDarkMode = document.getElementById('btnDarkMode');
+      if (btnDarkMode) {
+        btnDarkMode.addEventListener('click', () => {
+          const isDark = document.body.classList.contains('dark-mode');
+          setDarkMode(!isDark);
+        });
+      }
+
+      const btnDarkModeMobile = document.getElementById('btnDarkModeMobile');
+      if (btnDarkModeMobile) {
+        btnDarkModeMobile.addEventListener('click', () => {
+          const isDark = document.body.classList.contains('dark-mode');
+          setDarkMode(!isDark);
+        });
+      }
+
+
+      // ================================================================
+      // 5. GESTION DU MODAL DE CONNEXION / INSCRIPTION (AUTH)
+      // ================================================================
+      const authModal = document.getElementById('authModal');
+      const btnCloseAuth = document.getElementById('btnCloseAuth');
+      const tabLogin = document.getElementById('tabLogin');
+      const tabSignUp = document.getElementById('tabSignUp');
+      const formLogin = document.getElementById('formLogin');
+      const formSignUp = document.getElementById('formSignUp');
+
+      function openAuthModal(mode) {
+        if (!authModal) return;
+        authModal.classList.add('open');
+        authModal.setAttribute('aria-hidden', 'false');
+        
+        if (mode === 'signup') {
+          tabLogin.classList.remove('active');
+          tabSignUp.classList.add('active');
+          formLogin.style.display = 'none';
+          formSignUp.style.display = 'flex';
+        } else {
+          tabSignUp.classList.remove('active');
+          tabLogin.classList.add('active');
+          formSignUp.style.display = 'none';
+          formLogin.style.display = 'flex';
+        }
+      }
+
+      function closeAuthModal() {
+        if (!authModal) return;
+        authModal.classList.remove('open');
+        authModal.setAttribute('aria-hidden', 'true');
+      }
+
+      // Clics sur boutons navbar
+      const btnNavLogin = document.getElementById('btnNavLogin');
+      if (btnNavLogin) btnNavLogin.addEventListener('click', () => openAuthModal('login'));
+      const btnNavLoginMobile = document.getElementById('btnNavLoginMobile');
+      if (btnNavLoginMobile) btnNavLoginMobile.addEventListener('click', () => {
+        if (mobileDrawer) mobileDrawer.classList.remove('open');
+        openAuthModal('login');
+      });
+
+      const btnNavSignUp = document.getElementById('btnNavSignUp');
+      if (btnNavSignUp) btnNavSignUp.addEventListener('click', () => openAuthModal('signup'));
+      const btnNavSignUpMobile = document.getElementById('btnNavSignUpMobile');
+      if (btnNavSignUpMobile) btnNavSignUpMobile.addEventListener('click', () => {
+        if (mobileDrawer) mobileDrawer.classList.remove('open');
+        openAuthModal('signup');
+      });
+
+      // Fermeture
+      if (btnCloseAuth) btnCloseAuth.addEventListener('click', closeAuthModal);
+      if (authModal) {
+        authModal.addEventListener('click', (e) => {
+          if (e.target === authModal) closeAuthModal();
+        });
+      }
+
+      // Bascule onglets dans le modal
+      if (tabLogin && tabSignUp) {
+        tabLogin.addEventListener('click', () => {
+          tabSignUp.classList.remove('active');
+          tabLogin.classList.add('active');
+          formSignUp.style.display = 'none';
+          formLogin.style.display = 'flex';
+        });
+
+        tabSignUp.addEventListener('click', () => {
+          tabLogin.classList.remove('active');
+          tabSignUp.classList.add('active');
+          formLogin.style.display = 'none';
+          formSignUp.style.display = 'flex';
+        });
+      }
+
+      // Soumission formulaire
+      if (formLogin) {
+        formLogin.addEventListener('submit', (e) => {
+          e.preventDefault();
+          alert('✓ Connexion réussie ! Redirection vers vos rapports...');
+          window.location.href = 'app.html';
+        });
+      }
+
+      if (formSignUp) {
+        formSignUp.addEventListener('submit', (e) => {
+          e.preventDefault();
+          alert('✓ Compte créé avec succès ! Bienvenue sur Rapport d\'Inspection.');
+          window.location.href = 'app.html';
+        });
+      }
+    });
+  </script>
+</body>
+</html>
